@@ -31,6 +31,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@multica/ui/lib/utils";
+import { copyText } from "@multica/ui/lib/clipboard";
 import type { Attachment as AttachmentRecord } from "@multica/core/types";
 import { useT } from "../i18n";
 import { useAttachmentDownloadResolver } from "./attachment-download-context";
@@ -267,10 +268,9 @@ function ImageAttachmentView({
   const { t } = useT("editor");
 
   const handleCopyLink = async () => {
-    try {
-      await navigator.clipboard.writeText(src);
+    if (await copyText(src)) {
       toast.success(t(($) => $.image.link_copied));
-    } catch {
+    } else {
       toast.error(t(($) => $.image.copy_link_failed));
     }
   };
