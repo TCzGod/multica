@@ -66,7 +66,7 @@ function StickyHeaderShell({
   return (
     <div
       className={cn(
-        "sticky top-0 z-10 after:pointer-events-none after:absolute after:inset-x-0 after:top-full after:h-2 after:bg-gradient-to-b after:to-transparent",
+        "sticky top-0 z-10 after:pointer-events-none after:absolute after:inset-x-0 after:top-full after:h-1 after:bg-gradient-to-b after:to-transparent",
         highlighted ? highlightedCommentBackgroundClass : "bg-card",
         highlighted ? highlightedCommentFadeClass : "after:from-card",
       )}
@@ -505,7 +505,7 @@ function CommentRow({
       {edit.editing ? (
         <div
           {...edit.dropZoneProps}
-          className="relative pl-12 pr-4"
+          className="relative pl-12 pr-4 pt-1"
           onKeyDown={(e) => { if (e.key === "Escape") edit.cancelEdit(); }}
         >
           <div className="text-sm leading-relaxed">
@@ -554,7 +554,7 @@ function CommentRow({
         </div>
       ) : (
         <>
-          <div className="pl-12 pr-4 text-sm leading-relaxed text-foreground/85">
+          <div className="pl-12 pr-4 pt-1 text-sm leading-relaxed text-foreground/85">
             <ReadonlyContent content={entry.content ?? ""} attachments={entry.attachments} />
           </div>
           <AttachmentList attachments={entry.attachments} content={entry.content} className="mt-1.5 pl-12 pr-4" />
@@ -782,7 +782,7 @@ function CommentCardImpl({
         {/* Collapsible body */}
         <CollapsibleContent>
           {/* Parent comment body */}
-          <div className="px-4 pb-3">
+          <div className="px-4 pt-1 pb-3">
             {edit.editing ? (
               <div
                 {...edit.dropZoneProps}
