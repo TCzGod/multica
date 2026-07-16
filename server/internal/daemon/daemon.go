@@ -1,3 +1,7 @@
+// Copyright 2025 Multica, Inc.
+// Copyright 2025 RNAIWork, Inc.
+// Licensed under a modified Apache License 2.0. See LICENSE file for details.
+
 package daemon
 
 import (
@@ -2261,7 +2265,7 @@ func (d *Daemon) handleUpdate(ctx context.Context, runtimeID string, update *Pen
 		d.logger.Info("refusing CLI self-update: daemon is managed by Desktop", "runtime_id", runtimeID, "update_id", update.ID)
 		d.reportUpdateResult(ctx, runtimeID, update.ID, map[string]any{
 			"status": "failed",
-			"error":  "CLI is managed by Multica Desktop — update the Desktop app to upgrade the CLI",
+			"error":  "CLI is managed by RNAIWork Desktop — update the Desktop app to upgrade the CLI",
 		})
 		return
 	}

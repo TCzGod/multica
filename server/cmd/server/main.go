@@ -1,3 +1,7 @@
+// Copyright 2025 Multica, Inc.
+// Copyright 2025 RNAIWork, Inc.
+// Licensed under a modified Apache License 2.0. See LICENSE file for details.
+
 package main
 
 import (

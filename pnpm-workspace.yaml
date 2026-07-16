@@ -1,5 +1,6 @@
 packages:
-  - "apps/*"
+  - "apps/rnaiwork-web"
+  - "apps/docs"
   - "packages/*"
 
 catalog:

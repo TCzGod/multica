@@ -1,3 +1,7 @@
+// Copyright 2025 Multica, Inc.
+// Copyright 2025 RNAIWork, Inc.
+// Licensed under a modified Apache License 2.0. See LICENSE file for details.
+
 // Package agent provides a unified interface for executing prompts via
 // coding agents (Claude Code, CodeBuddy, Codex, Copilot, OpenCode, OpenClaw,
 // Hermes, Pi, Cursor, Kimi, Kiro, Antigravity, Qoder). It mirrors the
