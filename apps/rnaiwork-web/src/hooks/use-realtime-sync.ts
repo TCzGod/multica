@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { realtime } from "@/lib/realtime/websocket";
 import { useAuthStore } from "@/stores/auth";
+import { useWorkspaceStore } from "@/stores/workspace";
 
 /**
  * Keep TanStack Query caches in sync with realtime WebSocket events.
@@ -23,11 +24,12 @@ import { useAuthStore } from "@/stores/auth";
 export function useRealtimeSync() {
   const queryClient = useQueryClient();
   const user = useAuthStore((s) => s.user);
+  const currentWorkspace = useWorkspaceStore((s) => s.currentWorkspace);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || !currentWorkspace) return;
 
-    realtime.connect();
+    realtime.connect(currentWorkspace.slug);
 
     // Issues list — refresh on any issue lifecycle event.
     const unsubIssueCreated = realtime.on("issue_created", () => {

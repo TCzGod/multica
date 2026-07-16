@@ -40,7 +40,7 @@ class RealtimeClient {
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 
   /** Open the WebSocket. Idempotent — safe to call from multiple hooks. */
-  connect() {
+  connect(workspaceSlug?: string) {
     // Already connected (or still connecting) — nothing to do.
     if (
       this.ws &&
@@ -56,7 +56,10 @@ class RealtimeClient {
     // (see vite.config.ts), in prod the ingress terminates /ws.
     const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
     const host = window.location.host;
-    const wsUrl = `${protocol}//${host}/ws`;
+    let wsUrl = `${protocol}//${host}/ws`;
+    if (workspaceSlug) {
+      wsUrl += `?workspace_slug=${encodeURIComponent(workspaceSlug)}`;
+    }
 
     this.ws = new WebSocket(wsUrl);
 
