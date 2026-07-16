@@ -28,7 +28,9 @@ export interface Member {
   id: string;
   user_id: string;
   role: string;
-  user: User;
+  name: string;
+  email: string;
+  avatar_url?: string;
 }
 
 export interface Issue {

@@ -277,13 +277,13 @@ function MembersTab({ workspace }: { workspace: Workspace }) {
 function MemberRow({ member }: { member: Member }) {
   return (
     <li className="flex items-center gap-3 px-4 py-3">
-      <Avatar src={member.user.avatar_url} name={member.user.name} size="sm" />
+      <Avatar src={member.avatar_url} name={member.name} size="sm" />
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-medium text-[var(--color-text)]">
-          {member.user.name}
+          {member.name}
         </p>
         <p className="truncate text-xs text-[var(--color-text-muted)]">
-          {member.user.email}
+          {member.email}
         </p>
       </div>
       <RoleBadge role={member.role} />
