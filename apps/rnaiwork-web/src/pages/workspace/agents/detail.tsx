@@ -136,7 +136,7 @@ export default function AgentDetailPage() {
           <ArrowLeft className="h-4 w-4" />
           Back
         </Button>
-        {agent.is_archived ? (
+        {agent.archived_at ? (
           <Button
             variant="outline"
             onClick={() => restoreMutation.mutate()}
@@ -173,9 +173,9 @@ export default function AgentDetailPage() {
           <div className="mt-2 flex flex-wrap items-center gap-2">
             <ProviderBadge provider={agent.provider} />
             <Badge variant="outline">
-              Runtime: {agent.runtime?.name ?? "None"}
+              {agent.runtime_id ? "Has runtime" : "No runtime"}
             </Badge>
-            {agent.is_archived ? (
+            {agent.archived_at ? (
               <Badge variant="outline">Archived</Badge>
             ) : (
               <Badge variant="success">Active</Badge>
@@ -299,50 +299,16 @@ function OverviewTab({ agent }: { agent: Agent }) {
       <section className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <InfoCard title="Basic info">
           <InfoRow label="Provider" value={providerLabel(agent.provider)} />
-          <InfoRow label="Status" value={agent.is_archived ? "Archived" : "Active"} />
+          <InfoRow label="Status" value={agent.archived_at ? "Archived" : "Active"} />
           <InfoRow label="Created" value={formatDate(agent.created_at)} />
           <InfoRow label="Updated" value={formatDate(agent.updated_at)} />
         </InfoCard>
 
         <InfoCard title="Runtime">
-          {agent.runtime ? (
-            <>
-              <InfoRow label="Name" value={agent.runtime.name} />
-              <InfoRow
-                label="Status"
-                value={
-                  <span
-                    className={cn(
-                      "inline-flex items-center gap-1.5",
-                      agent.runtime.is_online ? "text-[var(--color-success)]" : "text-[var(--color-text-muted)]",
-                    )}
-                  >
-                    <span
-                      className={cn(
-                        "h-1.5 w-1.5 rounded-full",
-                        agent.runtime.is_online ? "bg-[var(--color-success)]" : "bg-[var(--color-text-subtle)]",
-                      )}
-                    />
-                    {agent.runtime.is_online ? "Online" : "Offline"}
-                  </span>
-                }
-              />
-              {agent.runtime.hostname && (
-                <InfoRow label="Hostname" value={agent.runtime.hostname} />
-              )}
-              {agent.runtime.available_clis && agent.runtime.available_clis.length > 0 && (
-                <InfoRow
-                  label="CLIs"
-                  value={agent.runtime.available_clis.join(", ")}
-                />
-              )}
-              {agent.runtime.last_seen_at && (
-                <InfoRow
-                  label="Last seen"
-                  value={formatRelativeTime(agent.runtime.last_seen_at)}
-                />
-              )}
-            </>
+          {agent.runtime_id ? (
+            <p className="text-sm text-[var(--color-text-muted)]">
+              Runtime assigned (ID: {agent.runtime_id.slice(0, 8)}...)
+            </p>
           ) : (
             <p className="text-sm text-[var(--color-text-muted)]">
               No runtime assigned.

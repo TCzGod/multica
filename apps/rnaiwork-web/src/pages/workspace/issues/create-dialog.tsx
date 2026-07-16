@@ -86,7 +86,7 @@ export function CreateIssueDialog({ open, onClose }: CreateIssueDialogProps) {
 
   const projectOptions: SelectOption[] = [
     { value: "", label: "No project" },
-    ...(Array.isArray(projectsQuery.data) ? projectsQuery.data : []).map((p: Project) => ({ value: p.id, label: p.name })),
+    ...(Array.isArray(projectsQuery.data) ? projectsQuery.data : []).map((p: Project) => ({ value: p.id, label: p.title })),
   ];
 
   const canSubmit = title.trim().length > 0 && !createMutation.isPending;

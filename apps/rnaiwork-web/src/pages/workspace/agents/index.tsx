@@ -49,9 +49,9 @@ export default function AgentsPage() {
   const filtered = useMemo(() => {
     switch (filter) {
       case "active":
-        return agents.filter((a) => !a.is_archived);
+        return agents.filter((a) => !a.archived_at);
       case "archived":
-        return agents.filter((a) => a.is_archived);
+        return agents.filter((a) => a.archived_at);
       default:
         return agents;
     }
@@ -60,8 +60,8 @@ export default function AgentsPage() {
   const counts = useMemo(
     () => ({
       all: agents.length,
-      active: agents.filter((a) => !a.is_archived).length,
-      archived: agents.filter((a) => a.is_archived).length,
+      active: agents.filter((a) => !a.archived_at).length,
+      archived: agents.filter((a) => a.archived_at).length,
     }),
     [agents],
   );
@@ -204,7 +204,7 @@ function AgentCard({ agent, onOpen }: AgentCardProps) {
             <h3 className="truncate text-sm font-semibold text-[var(--color-text)]">
               {agent.name}
             </h3>
-            {agent.is_archived ? (
+            {agent.archived_at ? (
               <Badge variant="outline" className="shrink-0">
                 Archived
               </Badge>
@@ -215,7 +215,7 @@ function AgentCard({ agent, onOpen }: AgentCardProps) {
             )}
           </div>
           <p className="mt-0.5 truncate text-xs text-[var(--color-text-muted)]">
-            {agent.runtime?.name ?? "No runtime"}
+            {agent.runtime_id ? "Has runtime" : "No runtime"}
           </p>
         </div>
       </div>

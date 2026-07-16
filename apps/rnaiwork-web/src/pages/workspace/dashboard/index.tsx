@@ -79,7 +79,7 @@ export default function DashboardPage() {
     return {
       totalIssues: issues.length,
       openIssues: issues.filter((i) => OPEN_STATUSES.has(i.status)).length,
-      activeAgents: agents.filter((a) => !a.is_archived).length,
+      activeAgents: agents.filter((a) => !a.archived_at).length,
       activeRuns: tasks.filter((t) => ACTIVE_RUN_STATUSES.has(t.status)).length,
     };
   }, [issuesQuery.data, agentsQuery.data, runsQuery.data]);
@@ -92,7 +92,7 @@ export default function DashboardPage() {
   }, [issuesQuery.data]);
 
   const activeAgents = useMemo(
-    () => (Array.isArray(agentsQuery.data) ? agentsQuery.data : []).filter((a) => !a.is_archived).slice(0, 8),
+    () => (Array.isArray(agentsQuery.data) ? agentsQuery.data : []).filter((a) => !a.archived_at).slice(0, 8),
     [agentsQuery.data],
   );
 
@@ -308,13 +308,7 @@ function RecentIssueRow({
         <span className="min-w-0 flex-1 truncate text-sm font-medium text-[var(--color-text)]">
           {issue.title}
         </span>
-        {issue.assignee && (
-          <Avatar
-            src={issue.assignee.avatar_url}
-            name={issue.assignee.name}
-            size="sm"
-          />
-        )}
+
         <StatusBadge status={issue.status} />
       </button>
     </li>
@@ -341,7 +335,7 @@ function ActiveAgentRow({
             {agent.name}
           </p>
           <p className="truncate text-xs text-[var(--color-text-muted)]">
-            {agent.runtime?.name ?? "No runtime"}
+            {agent.runtime_id ? "Has runtime" : "No runtime"}
           </p>
         </div>
         <Badge variant="outline" className="capitalize">

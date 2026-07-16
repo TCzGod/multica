@@ -208,7 +208,7 @@ export default function IssuesDetailPage() {
                       { value: "", label: "No project" },
                       ...(Array.isArray(projectsQuery.data) ? projectsQuery.data : []).map((p: Project) => ({
                         value: p.id,
-                        label: p.name,
+                        label: p.title,
                       })),
                     ]}
                     disabled={updateMutation.isPending}
@@ -216,9 +216,9 @@ export default function IssuesDetailPage() {
                 )}
               </SidebarRow>
               <SidebarRow label="Labels">
-                {issue.labels.length > 0 ? (
+                {issue.labels && issue.labels.length > 0 ? (
                   <div className="flex flex-wrap gap-1.5">
-                    {issue.labels.map((label) => (
+                    {(issue.labels ?? []).map((label) => (
                       <Badge key={label.id} variant="outline" className="gap-1.5">
                         <span
                           className="h-2 w-2 rounded-full"

@@ -1,18 +1,9 @@
-/**
- * TypeScript type definitions for the RNAIWork backend API.
- *
- * These mirror the JSON shapes returned by the Go handlers in
- * server/internal/handler/. Optional fields use `?` to match the
- * backend's `omitempty` / pointer semantics — callers should guard
- * against `undefined` when reading them.
- */
-
 export interface User {
   id: string;
   email: string;
   name: string;
   avatar_url?: string;
-  onboarding_completed: boolean;
+  onboarded_at?: string;
 }
 
 export interface Workspace {
@@ -31,40 +22,76 @@ export interface Member {
   name: string;
   email: string;
   avatar_url?: string;
+  created_at?: string;
 }
 
-export interface Issue {
+export interface Label {
+  id: string;
+  workspace_id: string;
+  name: string;
+  color: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface IssueResponse {
   id: string;
   workspace_id: string;
   number: number;
+  identifier: string;
   title: string;
   description?: string;
   status: string;
   priority: string;
+  assignee_type?: string;
   assignee_id?: string;
-  assignee?: Agent;
+  creator_type: string;
+  creator_id: string;
+  parent_issue_id?: string;
   project_id?: string;
-  project?: Project;
-  labels: Label[];
+  position: number;
+  stage?: number;
+  start_date?: string;
+  due_date?: string;
   created_at: string;
   updated_at: string;
-  parent_id?: string;
-  children_count?: number;
+  metadata: Record<string, any>;
+  reactions?: any[];
+  attachments?: any[];
+  labels?: Label[];
 }
 
-export interface Agent {
+export type Issue = IssueResponse;
+
+export interface AgentResponse {
   id: string;
   workspace_id: string;
-  name: string;
-  avatar_url?: string;
-  provider: string;
   runtime_id?: string;
-  runtime?: AgentRuntime;
+  name: string;
+  provider: string;
+  description?: string;
   instructions?: string;
-  is_archived: boolean;
+  avatar_url?: string;
+  runtime_mode: string;
+  runtime_config: any;
+  custom_args: string[];
+  has_custom_env: boolean;
+  custom_env_key_count: number;
+  visibility: string;
+  permission_mode: string;
+  status: string;
+  max_concurrent_tasks: number;
+  model: string;
+  thinking_level: string;
+  owner_id?: string;
+  skills: any[];
   created_at: string;
   updated_at: string;
+  archived_at?: string;
+  archived_by?: string;
 }
+
+export type Agent = AgentResponse;
 
 export interface AgentRuntime {
   id: string;
@@ -77,15 +104,24 @@ export interface AgentRuntime {
   is_online: boolean;
 }
 
-export interface Project {
+export interface ProjectResponse {
   id: string;
   workspace_id: string;
-  name: string;
+  title: string;
   description?: string;
-  color?: string;
-  issue_count?: number;
+  icon?: string;
+  status: string;
+  priority: string;
+  lead_type?: string;
+  lead_id?: string;
   created_at: string;
+  updated_at: string;
+  issue_count: number;
+  done_count: number;
+  resource_count: number;
 }
+
+export type Project = ProjectResponse;
 
 export interface Skill {
   id: string;
@@ -95,31 +131,6 @@ export interface Skill {
   content?: string;
   created_at: string;
   updated_at: string;
-}
-
-export interface Squad {
-  id: string;
-  workspace_id: string;
-  name: string;
-  description?: string;
-  leader_agent_id?: string;
-  members?: SquadMember[];
-  created_at: string;
-}
-
-export interface SquadMember {
-  id: string;
-  squad_id: string;
-  member_type: string;
-  member_id: string;
-  role: string;
-}
-
-export interface Label {
-  id: string;
-  workspace_id: string;
-  name: string;
-  color: string;
 }
 
 export interface Comment {
@@ -133,35 +144,6 @@ export interface Comment {
   updated_at: string;
   parent_id?: string;
   is_resolved: boolean;
-}
-
-export interface Attachment {
-  id: string;
-  filename: string;
-  content_type: string;
-  size: number;
-  url: string;
-  created_at: string;
-}
-
-export interface Autopilot {
-  id: string;
-  workspace_id: string;
-  name: string;
-  description?: string;
-  agent_id?: string;
-  is_active: boolean;
-  created_at: string;
-}
-
-export interface Invitation {
-  id: string;
-  workspace_id: string;
-  email: string;
-  inviter: User;
-  workspace: Workspace;
-  status: string;
-  created_at: string;
 }
 
 export interface TimelineEvent {
@@ -181,6 +163,16 @@ export interface TaskRun {
   status: string;
   started_at: string;
   completed_at?: string;
+}
+
+export interface Invitation {
+  id: string;
+  workspace_id: string;
+  email: string;
+  inviter: User;
+  workspace: Workspace;
+  status: string;
+  created_at: string;
 }
 
 export interface AppConfig {

@@ -65,7 +65,7 @@ export default function ProjectsPage() {
   });
 
   function handleDelete(project: Project) {
-    if (!window.confirm(`Delete project "${project.name}"? This cannot be undone.`)) {
+    if (!window.confirm(`Delete project "${project.title}"? This cannot be undone.`)) {
       return;
     }
     deleteMutation.mutate(project.id);
@@ -159,12 +159,12 @@ function ProjectCard({ project, onDelete, deleting }: ProjectCardProps) {
       <div className="flex items-start gap-3">
         <span
           className="mt-0.5 h-3 w-3 shrink-0 rounded-full"
-          style={{ backgroundColor: project.color ?? DEFAULT_COLOR }}
+          style={{ backgroundColor: DEFAULT_COLOR }}
           aria-hidden="true"
         />
         <div className="min-w-0 flex-1">
           <h3 className="truncate text-sm font-semibold text-[var(--color-text)]">
-            {project.name}
+            {project.title}
           </h3>
           {project.description ? (
             <p className="mt-1 line-clamp-2 text-xs text-[var(--color-text-muted)]">

@@ -256,28 +256,15 @@ function IssueRow({
         <PriorityBadge priority={issue.priority} />
       </td>
       <td className="px-3 py-3">
-        {issue.assignee ? (
-          <div className="flex items-center gap-2">
-            <Avatar src={issue.assignee.avatar_url} name={issue.assignee.name} size="sm" />
-            <span className="truncate text-[var(--color-text-muted)]">
-              {issue.assignee.name}
-            </span>
-          </div>
+        {issue.assignee_id ? (
+          <span className="text-[var(--color-text-muted)]">Assigned</span>
         ) : (
           <span className="text-[var(--color-text-subtle)]">—</span>
         )}
       </td>
       <td className="px-3 py-3">
-        {issue.project ? (
-          <Badge variant="outline" className="gap-1.5">
-            {issue.project.color && (
-              <span
-                className="h-2 w-2 rounded-full"
-                style={{ backgroundColor: issue.project.color }}
-              />
-            )}
-            {issue.project.name}
-          </Badge>
+        {issue.project_id ? (
+          <span className="text-[var(--color-text-muted)]">Assigned</span>
         ) : (
           <span className="text-[var(--color-text-subtle)]">—</span>
         )}
