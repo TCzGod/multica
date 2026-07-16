@@ -73,9 +73,9 @@ export default function DashboardPage() {
   });
 
   const stats = useMemo(() => {
-    const issues = issuesQuery.data ?? [];
-    const agents = agentsQuery.data ?? [];
-    const tasks = runsQuery.data ?? [];
+    const issues = Array.isArray(issuesQuery.data) ? issuesQuery.data : [];
+    const agents = Array.isArray(agentsQuery.data) ? agentsQuery.data : [];
+    const tasks = Array.isArray(runsQuery.data) ? runsQuery.data : [];
     return {
       totalIssues: issues.length,
       openIssues: issues.filter((i) => OPEN_STATUSES.has(i.status)).length,
@@ -85,14 +85,14 @@ export default function DashboardPage() {
   }, [issuesQuery.data, agentsQuery.data, runsQuery.data]);
 
   const recentIssues = useMemo(() => {
-    const issues = issuesQuery.data ?? [];
+    const issues = Array.isArray(issuesQuery.data) ? issuesQuery.data : [];
     return [...issues]
       .sort((a, b) => b.created_at.localeCompare(a.created_at))
       .slice(0, 5);
   }, [issuesQuery.data]);
 
   const activeAgents = useMemo(
-    () => (agentsQuery.data ?? []).filter((a) => !a.is_archived).slice(0, 8),
+    () => (Array.isArray(agentsQuery.data) ? agentsQuery.data : []).filter((a) => !a.is_archived).slice(0, 8),
     [agentsQuery.data],
   );
 

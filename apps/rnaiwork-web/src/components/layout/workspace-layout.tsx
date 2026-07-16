@@ -73,11 +73,20 @@ export function WorkspaceLayout() {
   useEffect(() => {
     if (!workspaceSlug) return;
     const ws = workspaces.find((w) => w.slug === workspaceSlug) ?? null;
-    setWorkspaceContext({ slug: workspaceSlug, id: ws?.id ?? null });
     if (ws && ws.id !== currentWorkspace?.id) {
       setCurrentWorkspace(ws);
     }
   }, [workspaceSlug, workspaces, currentWorkspace?.id, setCurrentWorkspace]);
+
+  // Set workspace context SYNCHRONOUSLY during render (not in useEffect)
+  // so child components' useQuery calls have the X-Workspace-Slug header
+  // on their very first request. React runs child effects before parent
+  // effects, so a useEffect-only approach causes a race where the first
+  // batch of API calls goes out without the workspace header.
+  if (workspaceSlug) {
+    const ws = workspaces.find((w) => w.slug === workspaceSlug) ?? null;
+    setWorkspaceContext({ slug: workspaceSlug, id: ws?.id ?? null });
+  }
 
   // Realtime sync — keep TanStack Query caches fresh as the backend pushes
   // updates over /ws. The hook connects once authenticated (it guards on

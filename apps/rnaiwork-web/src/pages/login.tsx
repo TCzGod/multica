@@ -3,6 +3,7 @@ import type { KeyboardEvent, ClipboardEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useAuthStore } from "@/stores/auth";
+import { useWorkspaceStore } from "@/stores/workspace";
 import { sendCode, verifyCode } from "@/lib/api/auth";
 import { ApiError } from "@/lib/api/client";
 import { Button } from "@/components/ui/button";
@@ -18,6 +19,8 @@ type Step = "email" | "code";
 export default function LoginPage() {
   const navigate = useNavigate();
   const { user, initialized, init, refreshUser } = useAuthStore();
+  const { workspaces, currentWorkspace, loadWorkspaces } =
+    useWorkspaceStore();
 
   const [step, setStep] = useState<Step>("email");
   const [email, setEmail] = useState("");
@@ -26,6 +29,7 @@ export default function LoginPage() {
   const [verifying, setVerifying] = useState(false);
   const [cooldown, setCooldown] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [wsLoaded, setWsLoaded] = useState(false);
   const inputs = useRef<(HTMLInputElement | null)[]>([]);
 
   // Initialize auth state on mount if the app shell hasn't already.
@@ -33,10 +37,33 @@ export default function LoginPage() {
     if (!initialized) void init();
   }, [initialized, init]);
 
-  // Redirect to the app once we confirm an authenticated session.
+  // For authenticated users, load workspaces so we can redirect into the app.
   useEffect(() => {
-    if (initialized && user) navigate("/", { replace: true });
-  }, [initialized, user, navigate]);
+    if (!initialized || !user || wsLoaded) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        await loadWorkspaces();
+      } finally {
+        if (!cancelled) setWsLoaded(true);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [initialized, user, wsLoaded, loadWorkspaces]);
+
+  // Redirect to the workspace dashboard once a workspace is resolved.
+  useEffect(() => {
+    if (initialized && user && currentWorkspace) {
+      navigate(`/${currentWorkspace.slug}/dashboard`, { replace: true });
+    }
+  }, [initialized, user, currentWorkspace, navigate]);
+
+  // No workspaces after loading — send the user to create one.
+  useEffect(() => {
+    if (initialized && user && wsLoaded && workspaces.length === 0) {
+      navigate("/new-workspace", { replace: true });
+    }
+  }, [initialized, user, wsLoaded, workspaces.length, navigate]);
 
   // Countdown ticker for the resend cooldown.
   useEffect(() => {
@@ -98,7 +125,10 @@ export default function LoginPage() {
     try {
       await verifyCode(email.trim(), full);
       await refreshUser();
-      navigate("/", { replace: true });
+      // Load workspaces — the redirect effects will navigate to the
+      // workspace dashboard (or /new-workspace if none exist).
+      await loadWorkspaces();
+      setWsLoaded(true);
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Verification failed.";
       setError(msg);

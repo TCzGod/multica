@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useAuthStore } from "@/stores/auth";
+import { useWorkspaceStore } from "@/stores/workspace";
 import {
   listInvitations,
   acceptInvitation,
@@ -14,6 +15,7 @@ import { Spinner } from "@/components/ui/spinner";
 export default function InvitationsPage() {
   const navigate = useNavigate();
   const { user, initialized, init } = useAuthStore();
+  const { currentWorkspace, loadWorkspaces, workspaces } = useWorkspaceStore();
 
   const [invitations, setInvitations] = useState<Invitation[]>([]);
   const [loading, setLoading] = useState(true);
@@ -28,6 +30,12 @@ export default function InvitationsPage() {
   useEffect(() => {
     if (initialized && !user) navigate("/login", { replace: true });
   }, [initialized, user, navigate]);
+
+  // Ensure workspaces are loaded so the "Go home" button can navigate
+  // directly into the workspace app.
+  useEffect(() => {
+    if (initialized && user && workspaces.length === 0) void loadWorkspaces();
+  }, [initialized, user, workspaces.length, loadWorkspaces]);
 
   const load = async () => {
     setLoading(true);
@@ -115,7 +123,7 @@ export default function InvitationsPage() {
             <p className="text-sm text-[var(--color-text-muted)]">
               You have no pending invitations.
             </p>
-            <Button variant="outline" size="sm" className="mt-4" onClick={() => navigate("/")}>
+            <Button variant="outline" size="sm" className="mt-4" onClick={() => currentWorkspace ? navigate(`/${currentWorkspace.slug}/dashboard`) : navigate("/")}>
               Go home
             </Button>
           </div>

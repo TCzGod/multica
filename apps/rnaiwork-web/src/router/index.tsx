@@ -16,6 +16,7 @@ import { WorkspaceLayout } from "@/components/layout/workspace-layout";
 import LandingPage from "@/pages/landing";
 import LoginPage from "@/pages/login";
 import InvitationsPage from "@/pages/invitations";
+import NewWorkspacePage from "@/pages/new-workspace";
 
 const DashboardPage = lazy(() => import("@/pages/workspace/dashboard"));
 const IssuesListPage = lazy(() => import("@/pages/workspace/issues"));
@@ -39,6 +40,10 @@ export const router = createBrowserRouter([
   {
     path: "/invitations",
     element: <InvitationsPage />,
+  },
+  {
+    path: "/new-workspace",
+    element: <NewWorkspacePage />,
   },
   {
     path: "/:workspaceSlug",

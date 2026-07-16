@@ -1,19 +1,52 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/stores/auth";
+import { useWorkspaceStore } from "@/stores/workspace";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 
 export default function LandingPage() {
   const navigate = useNavigate();
   const { user, initialized, init } = useAuthStore();
+  const { workspaces, currentWorkspace, loadWorkspaces, loading: wsLoading } =
+    useWorkspaceStore();
+  const [wsLoaded, setWsLoaded] = useState(false);
 
   // Resolve auth state on direct entry so the CTA reflects the session.
   useEffect(() => {
     if (!initialized) void init();
   }, [initialized, init]);
 
-  const authPending = !initialized;
+  // For authenticated users, ensure workspaces are loaded so we can
+  // redirect them into the app instead of leaving them on the landing page.
+  useEffect(() => {
+    if (!initialized || !user || wsLoaded) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        await loadWorkspaces();
+      } finally {
+        if (!cancelled) setWsLoaded(true);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [initialized, user, wsLoaded, loadWorkspaces]);
+
+  // Once we have a current workspace, redirect into the workspace app.
+  useEffect(() => {
+    if (initialized && user && currentWorkspace) {
+      navigate(`/${currentWorkspace.slug}/dashboard`, { replace: true });
+    }
+  }, [initialized, user, currentWorkspace, navigate]);
+
+  // No workspaces after loading — send the user to create one.
+  useEffect(() => {
+    if (initialized && user && wsLoaded && workspaces.length === 0) {
+      navigate("/new-workspace", { replace: true });
+    }
+  }, [initialized, user, wsLoaded, workspaces.length, navigate]);
+
+  const authPending = !initialized || (!!user && !wsLoaded);
 
   return (
     <div className="relative flex min-h-screen flex-col overflow-hidden bg-[var(--color-bg)]">
@@ -51,7 +84,7 @@ export default function LandingPage() {
           {authPending ? (
             <Spinner size="sm" />
           ) : user ? (
-            <Button variant="ghost" size="sm" onClick={() => navigate("/")}>
+            <Button variant="ghost" size="sm" onClick={() => currentWorkspace && navigate(`/${currentWorkspace.slug}/dashboard`)}>
               Dashboard
             </Button>
           ) : (
@@ -91,7 +124,7 @@ export default function LandingPage() {
               <Spinner size="sm" /> Loading…
             </Button>
           ) : user ? (
-            <Button size="lg" onClick={() => navigate("/")}>
+            <Button size="lg" onClick={() => currentWorkspace && navigate(`/${currentWorkspace.slug}/dashboard`)}>
               Go to Dashboard
             </Button>
           ) : (
