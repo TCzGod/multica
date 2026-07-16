@@ -70,11 +70,11 @@ export default function IssuesListPage() {
 
   const assigneeFilterOptions: SelectOption[] = [
     { value: "", label: "All assignees" },
-    ...(agentsQuery.data ?? []).map((a: Agent) => ({ value: a.id, label: a.name })),
+    ...(Array.isArray(agentsQuery.data) ? agentsQuery.data : []).map((a: Agent) => ({ value: a.id, label: a.name })),
   ];
 
   const hasActiveFilters = Boolean(search || status || assigneeId);
-  const issues = issuesQuery.data ?? [];
+  const issues = Array.isArray(issuesQuery.data) ? issuesQuery.data : [];
 
   function openIssue(issue: Issue) {
     navigate(`/${workspaceSlug}/issues/${issue.id}`);

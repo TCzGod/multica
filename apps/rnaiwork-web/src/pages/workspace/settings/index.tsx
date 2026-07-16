@@ -213,7 +213,7 @@ function MembersTab({ workspace }: { workspace: Workspace }) {
     queryFn: () => listMembers(workspace.id),
   });
 
-  const members = membersQuery.data ?? [];
+  const members = Array.isArray(membersQuery.data) ? membersQuery.data : [];
 
   return (
     <div className="max-w-2xl">

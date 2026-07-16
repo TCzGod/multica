@@ -81,12 +81,12 @@ export function CreateIssueDialog({ open, onClose }: CreateIssueDialogProps) {
 
   const assigneeOptions: SelectOption[] = [
     { value: "", label: "Unassigned" },
-    ...(agentsQuery.data ?? []).map((a: Agent) => ({ value: a.id, label: a.name })),
+    ...(Array.isArray(agentsQuery.data) ? agentsQuery.data : []).map((a: Agent) => ({ value: a.id, label: a.name })),
   ];
 
   const projectOptions: SelectOption[] = [
     { value: "", label: "No project" },
-    ...(projectsQuery.data ?? []).map((p: Project) => ({ value: p.id, label: p.name })),
+    ...(Array.isArray(projectsQuery.data) ? projectsQuery.data : []).map((p: Project) => ({ value: p.id, label: p.name })),
   ];
 
   const canSubmit = title.trim().length > 0 && !createMutation.isPending;

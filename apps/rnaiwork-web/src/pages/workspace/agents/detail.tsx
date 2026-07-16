@@ -286,11 +286,13 @@ function AgentNameField({ agent }: { agent: Agent }) {
 // --- Overview --------------------------------------------------------------
 
 function OverviewTab({ agent }: { agent: Agent }) {
-  const { data: tasks = [] } = useQuery({
+  const { data: tasksData } = useQuery({
     queryKey: ["agent-tasks", agent.id],
     queryFn: () => listAgentTasks(agent.id),
     staleTime: 30_000,
   });
+
+  const tasks = Array.isArray(tasksData) ? tasksData : [];
 
   return (
     <div className="space-y-6">
@@ -415,15 +417,18 @@ function InstructionsTab({ agent }: { agent: Agent }) {
 function SkillsTab({ agentId }: { agentId: string }) {
   const queryClient = useQueryClient();
 
-  const { data: assigned = [], isLoading: assignedLoading } = useQuery({
+  const { data: assignedData, isLoading: assignedLoading } = useQuery({
     queryKey: ["agent-skills", agentId],
     queryFn: () => listAgentSkills(agentId),
   });
 
-  const { data: allSkills = [], isLoading: allLoading } = useQuery({
+  const { data: allSkillsData, isLoading: allLoading } = useQuery({
     queryKey: ["skills"],
     queryFn: listSkills,
   });
+
+  const assigned = Array.isArray(assignedData) ? assignedData : [];
+  const allSkills = Array.isArray(allSkillsData) ? allSkillsData : [];
 
   const assignedIds = useMemo(() => new Set(assigned.map((s) => s.id)), [assigned]);
   const unassigned = useMemo(
@@ -691,10 +696,12 @@ function EnvironmentTab({ agentId }: { agentId: string }) {
 // --- Tasks -----------------------------------------------------------------
 
 function TasksTab({ agentId }: { agentId: string }) {
-  const { data: tasks = [], isLoading } = useQuery({
+  const { data: tasksData, isLoading } = useQuery({
     queryKey: ["agent-tasks", agentId],
     queryFn: () => listAgentTasks(agentId),
   });
+
+  const tasks = Array.isArray(tasksData) ? tasksData : [];
 
   if (isLoading) {
     return (

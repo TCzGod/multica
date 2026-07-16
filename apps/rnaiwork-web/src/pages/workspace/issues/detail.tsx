@@ -157,7 +157,7 @@ export default function IssuesDetailPage() {
           />
 
           <CommentsSection
-            comments={commentsQuery.data ?? []}
+            comments={Array.isArray(commentsQuery.data) ? commentsQuery.data : []}
             loading={commentsQuery.isLoading}
             issueId={issueId!}
           />
@@ -189,7 +189,7 @@ export default function IssuesDetailPage() {
                   onChange={(v) => patch({ assignee_id: v })}
                   options={[
                     { value: "", label: "Unassigned" },
-                    ...(agentsQuery.data ?? []).map((a: Agent) => ({
+                    ...(Array.isArray(agentsQuery.data) ? agentsQuery.data : []).map((a: Agent) => ({
                       value: a.id,
                       label: a.name,
                     })),
@@ -206,7 +206,7 @@ export default function IssuesDetailPage() {
                     onChange={(v) => patch({ project_id: v })}
                     options={[
                       { value: "", label: "No project" },
-                      ...(projectsQuery.data ?? []).map((p: Project) => ({
+                      ...(Array.isArray(projectsQuery.data) ? projectsQuery.data : []).map((p: Project) => ({
                         value: p.id,
                         label: p.name,
                       })),
@@ -243,7 +243,7 @@ export default function IssuesDetailPage() {
           </Card>
 
           <ActivityCard
-            events={timelineQuery.data ?? []}
+            events={Array.isArray(timelineQuery.data) ? timelineQuery.data : []}
             loading={timelineQuery.isLoading}
           />
         </aside>

@@ -57,7 +57,7 @@ export default function RuntimesPage() {
     deleteMutation.mutate(runtime.id);
   }
 
-  const runtimes = runtimesQuery.data ?? [];
+  const runtimes = Array.isArray(runtimesQuery.data) ? runtimesQuery.data : [];
 
   return (
     <div className="flex h-full flex-col">

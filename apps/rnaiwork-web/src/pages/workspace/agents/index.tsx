@@ -39,10 +39,12 @@ export default function AgentsPage() {
   const [filter, setFilter] = useState<AgentFilter>("all");
   const [createOpen, setCreateOpen] = useState(false);
 
-  const { data: agents = [], isLoading, error } = useQuery({
+  const { data: agentsData, isLoading, error } = useQuery({
     queryKey: ["agents"],
     queryFn: listAgents,
   });
+
+  const agents = Array.isArray(agentsData) ? agentsData : [];
 
   const filtered = useMemo(() => {
     switch (filter) {

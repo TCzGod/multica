@@ -71,7 +71,7 @@ export default function ProjectsPage() {
     deleteMutation.mutate(project.id);
   }
 
-  const projects = projectsQuery.data ?? [];
+  const projects = Array.isArray(projectsQuery.data) ? projectsQuery.data : [];
 
   return (
     <div className="flex h-full flex-col">

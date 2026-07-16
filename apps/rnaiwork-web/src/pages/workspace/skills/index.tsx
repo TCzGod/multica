@@ -63,7 +63,7 @@ export default function SkillsPage() {
     if (expandedId === skill.id) setExpandedId(null);
   }
 
-  const skills = skillsQuery.data ?? [];
+  const skills = Array.isArray(skillsQuery.data) ? skillsQuery.data : [];
 
   return (
     <div className="flex h-full flex-col">

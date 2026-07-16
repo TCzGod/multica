@@ -40,11 +40,13 @@ export function CreateAgentDialog({ open, onClose, onCreated }: CreateAgentDialo
     }
   }, [open]);
 
-  const { data: runtimes = [] } = useQuery({
+  const { data: runtimesData } = useQuery({
     queryKey: ["runtimes"],
     queryFn: listRuntimes,
     enabled: open,
   });
+
+  const runtimes = Array.isArray(runtimesData) ? runtimesData : [];
 
   const runtimeOptions: SelectOption[] = runtimes.map((r) => ({
     value: r.id,
