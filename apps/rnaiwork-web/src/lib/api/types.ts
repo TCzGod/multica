@@ -68,7 +68,6 @@ export interface AgentResponse {
   workspace_id: string;
   runtime_id?: string;
   name: string;
-  provider: string;
   description?: string;
   instructions?: string;
   avatar_url?: string;
@@ -89,6 +88,7 @@ export interface AgentResponse {
   updated_at: string;
   archived_at?: string;
   archived_by?: string;
+  provider: string;
 }
 
 export type Agent = AgentResponse;
@@ -173,6 +173,73 @@ export interface Invitation {
   workspace: Workspace;
   status: string;
   created_at: string;
+}
+
+export interface Autopilot {
+  id: string;
+  workspace_id: string;
+  name: string;
+  description?: string;
+  status: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Squad {
+  id: string;
+  workspace_id: string;
+  name: string;
+  description?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ChatSession {
+  id: string;
+  workspace_id: string;
+  agent_id?: string;
+  name: string;
+  status: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface InboxItem {
+  id: string;
+  workspace_id: string;
+  source: string;
+  title: string;
+  content: string;
+  status: string;
+  created_at: string;
+}
+
+export interface Attachment {
+  id: string;
+  workspace_id: string;
+  issue_id?: string;
+  filename: string;
+  content_type: string;
+  size: number;
+  created_at: string;
+}
+
+export interface AgentActivity {
+  date: string;
+  run_count: number;
+}
+
+export interface AgentRunCounts {
+  total: number;
+  last_7d: number;
+  last_30d: number;
+}
+
+export interface DashboardStats {
+  total_issues: number;
+  open_issues: number;
+  active_agents: number;
+  active_runs: number;
 }
 
 export interface AppConfig {

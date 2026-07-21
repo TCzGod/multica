@@ -27,6 +27,10 @@ const ProjectsPage = lazy(() => import("@/pages/workspace/projects"));
 const RuntimesPage = lazy(() => import("@/pages/workspace/runtimes"));
 const SkillsPage = lazy(() => import("@/pages/workspace/skills"));
 const SettingsPage = lazy(() => import("@/pages/workspace/settings"));
+const AutopilotsPage = lazy(() => import("@/pages/workspace/autopilots"));
+const SquadsPage = lazy(() => import("@/pages/workspace/squads"));
+const LabelsPage = lazy(() => import("@/pages/workspace/labels"));
+const InboxPage = lazy(() => import("@/pages/workspace/inbox"));
 
 export const router = createBrowserRouter([
   {
@@ -59,6 +63,10 @@ export const router = createBrowserRouter([
       { path: "runtimes", element: <RuntimesPage /> },
       { path: "skills", element: <SkillsPage /> },
       { path: "settings", element: <SettingsPage /> },
+      { path: "autopilots", element: <AutopilotsPage /> },
+      { path: "squads", element: <SquadsPage /> },
+      { path: "labels", element: <LabelsPage /> },
+      { path: "inbox", element: <InboxPage /> },
     ],
   },
 ]);

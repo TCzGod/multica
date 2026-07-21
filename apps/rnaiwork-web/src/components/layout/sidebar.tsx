@@ -6,6 +6,11 @@ import {
   ListTodo,
   Server,
   Settings,
+  Play,
+  Users,
+  Tag,
+  Mail,
+  LayoutDashboard,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Logo } from "./logo";
@@ -17,11 +22,16 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
+  { label: "Dashboard", icon: LayoutDashboard, to: "dashboard" },
   { label: "Issues", icon: ListTodo, to: "issues" },
   { label: "Agents", icon: Bot, to: "agents" },
+  { label: "Autopilots", icon: Play, to: "autopilots" },
+  { label: "Squads", icon: Users, to: "squads" },
   { label: "Projects", icon: FolderKanban, to: "projects" },
   { label: "Runtimes", icon: Server, to: "runtimes" },
   { label: "Skills", icon: BookOpen, to: "skills" },
+  { label: "Labels", icon: Tag, to: "labels" },
+  { label: "Inbox", icon: Mail, to: "inbox" },
   { label: "Settings", icon: Settings, to: "settings" },
 ];
 
