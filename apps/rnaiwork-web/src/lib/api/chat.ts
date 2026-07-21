@@ -1,34 +1,23 @@
-import { fetchAPI } from "./client";
+import { fetchAPI, apiPost } from "./client";
+import type { ChatMessage, ChatSession, CreateChatSessionInput } from "./types";
 
-export interface ChatSession {
-  id: string;
-  workspace_id: string;
-  agent_id?: string;
-  name: string;
-  status: string;
-  created_at: string;
-  updated_at: string;
-}
-
-export async function listChatSessions(): Promise<ChatSession[]> {
+export function listChatSessions() {
   return fetchAPI<ChatSession[]>("/api/chat/sessions");
 }
 
-export async function getChatSession(id: string): Promise<ChatSession> {
-  return fetchAPI<ChatSession>(`/api/chat/sessions/${id}`);
+export function createChatSession(data: CreateChatSessionInput) {
+  return apiPost<ChatSession>("/api/chat/sessions", data);
 }
 
-export async function createChatSession(data: {
-  agent_id?: string;
-  name?: string;
-}): Promise<ChatSession> {
-  return fetchAPI<ChatSession>("/api/chat/sessions", { method: "POST", body: data });
+export function listChatMessages(sessionId: string) {
+  return fetchAPI<ChatMessage[]>(
+    `/api/chat/sessions/${encodeURIComponent(sessionId)}/messages`,
+  );
 }
 
-export async function deleteChatSession(id: string): Promise<void> {
-  await fetchAPI<void>(`/api/chat/sessions/${id}`, { method: "DELETE" });
-}
-
-export async function getChatThread(sessionId: string): Promise<any> {
-  return fetchAPI(`/api/chat/thread?session_id=${sessionId}`);
+export function sendChatMessage(sessionId: string, content: string) {
+  return apiPost<ChatMessage>(
+    `/api/chat/sessions/${encodeURIComponent(sessionId)}/messages`,
+    { content },
+  );
 }

@@ -1,40 +1,20 @@
+import { forwardRef, type SelectHTMLAttributes } from "react";
 import { cn } from "@/lib/utils";
 
-export interface SelectOption {
-  value: string;
-  label: string;
-}
+export type SelectProps = SelectHTMLAttributes<HTMLSelectElement>;
 
-export interface SelectProps {
-  value: string;
-  onChange: (value: string) => void;
-  options: SelectOption[];
-  className?: string;
-  placeholder?: string;
-  disabled?: boolean;
-}
-
-export function Select({ value, onChange, options, className, placeholder, disabled }: SelectProps) {
-  return (
+export const Select = forwardRef<HTMLSelectElement, SelectProps>(
+  ({ className, children, ...props }, ref) => (
     <select
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      disabled={disabled}
+      ref={ref}
       className={cn(
-        "flex h-9 w-full rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-1 text-sm text-[var(--color-text)] shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] disabled:cursor-not-allowed disabled:opacity-50",
-        className
+        "flex h-9 w-full rounded-md border border-border bg-surface px-3 py-1 text-sm text-text shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 disabled:cursor-not-allowed disabled:opacity-50",
+        className,
       )}
+      {...props}
     >
-      {placeholder && (
-        <option value="" disabled>
-          {placeholder}
-        </option>
-      )}
-      {options.map((opt) => (
-        <option key={opt.value} value={opt.value}>
-          {opt.label}
-        </option>
-      ))}
+      {children}
     </select>
-  );
-}
+  ),
+);
+Select.displayName = "Select";

@@ -1,50 +1,78 @@
 import { create } from "zustand";
-import type { Workspace } from "@/lib/api/types";
-import { listWorkspaces } from "@/lib/api/workspaces";
+import { toast } from "sonner";
+import * as workspacesApi from "@/lib/api/workspaces";
 import { setWorkspaceContext } from "@/lib/api/client";
+import type { Workspace } from "@/lib/api/types";
+
+const LAST_WORKSPACE_KEY = "rnaiwork:last-workspace-slug";
 
 interface WorkspaceState {
   workspaces: Workspace[];
   currentWorkspace: Workspace | null;
-  loading: boolean;
   error: string | null;
-  loadWorkspaces: () => Promise<void>;
-  setCurrentWorkspace: (workspace: Workspace) => void;
-  setCurrentWorkspaceBySlug: (slug: string) => void;
+  loaded: boolean;
+  loadWorkspaces: () => Promise<Workspace[]>;
+  setCurrentWorkspace: (ws: Workspace) => void;
+  createWorkspace: (data: {
+    name: string;
+    slug?: string;
+    description?: string;
+  }) => Promise<Workspace | null>;
 }
 
 export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
   workspaces: [],
   currentWorkspace: null,
-  loading: false,
   error: null,
-  loadWorkspaces: async () => {
-    set({ loading: true, error: null });
+  loaded: false,
+
+  async loadWorkspaces() {
     try {
-      const workspaces = await listWorkspaces();
-      // Restore last workspace from localStorage
-      const lastSlug = localStorage.getItem("last_workspace_slug");
-      const current = lastSlug
-        ? workspaces.find(w => w.slug === lastSlug) ?? workspaces[0] ?? null
-        : workspaces[0] ?? null;
+      const list = await workspacesApi.listWorkspaces();
+      const safe = Array.isArray(list) ? list : [];
+      set({ workspaces: safe, error: null });
 
-      if (current) {
-        setWorkspaceContext({ slug: current.slug, id: current.id });
-        localStorage.setItem("last_workspace_slug", current.slug);
+      const lastSlug = localStorage.getItem(LAST_WORKSPACE_KEY);
+      const next =
+        safe.find((w) => w.slug === lastSlug) ?? safe[0] ?? null;
+
+      if (next) {
+        setWorkspaceContext({ slug: next.slug, id: next.id });
+        set({ currentWorkspace: next });
+      } else {
+        setWorkspaceContext({ slug: null, id: null });
+        set({ currentWorkspace: null });
       }
-
-      set({ workspaces, currentWorkspace: current, loading: false });
-    } catch (err: any) {
-      set({ loading: false, error: err.message ?? "Failed to load workspaces" });
+      return safe;
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Failed to load workspaces";
+      set({ error: message });
+      return [];
+    } finally {
+      set({ loaded: true });
     }
   },
-  setCurrentWorkspace: (workspace) => {
-    setWorkspaceContext({ slug: workspace.slug, id: workspace.id });
-    localStorage.setItem("last_workspace_slug", workspace.slug);
-    set({ currentWorkspace: workspace });
+
+  setCurrentWorkspace(ws) {
+    set({ currentWorkspace: ws });
+    setWorkspaceContext({ slug: ws.slug, id: ws.id });
+    if (ws.slug) {
+      localStorage.setItem(LAST_WORKSPACE_KEY, ws.slug);
+    }
   },
-  setCurrentWorkspaceBySlug: (slug) => {
-    const ws = get().workspaces.find(w => w.slug === slug);
-    if (ws) get().setCurrentWorkspace(ws);
+
+  async createWorkspace(data) {
+    try {
+      const ws = await workspacesApi.createWorkspace(data);
+      const list = [...get().workspaces, ws];
+      set({ workspaces: list });
+      return ws;
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "Failed to create workspace",
+      );
+      return null;
+    }
   },
 }));

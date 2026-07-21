@@ -1,62 +1,117 @@
-import { useEffect } from "react";
-import { createPortal } from "react-dom";
-import { X } from "lucide-react";
+import {
+  useEffect,
+  type HTMLAttributes,
+  type ReactNode,
+} from "react";
 import { cn } from "@/lib/utils";
+import { X } from "lucide-react";
 
-export interface DialogProps {
+export function Dialog({
+  open,
+  onClose,
+  children,
+  className,
+}: {
   open: boolean;
   onClose: () => void;
-  title?: string;
-  children: React.ReactNode;
+  children: ReactNode;
   className?: string;
-}
-
-export function Dialog({ open, onClose, title, children, className }: DialogProps) {
+}) {
   useEffect(() => {
     if (!open) return;
-    const handleKey = (e: KeyboardEvent) => {
+    const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
     };
-    document.addEventListener("keydown", handleKey);
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [open, onClose]);
+
+  useEffect(() => {
+    if (!open) return;
+    const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => {
-      document.removeEventListener("keydown", handleKey);
-      document.body.style.overflow = "";
+      document.body.style.overflow = prev;
     };
-  }, [open, onClose]);
+  }, [open]);
 
   if (!open) return null;
 
-  return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      role="dialog"
+      aria-modal="true"
+    >
       <div
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+        className="absolute inset-0 bg-black/40 animate-in fade-in"
         onClick={onClose}
-        aria-hidden="true"
       />
       <div
-        role="dialog"
-        aria-modal="true"
         className={cn(
-          "relative z-10 w-full max-w-lg rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-6 shadow-xl",
-          className
+          "relative z-10 w-full max-w-lg rounded-lg border border-border bg-surface p-4 shadow-lg animate-in fade-in zoom-in-95",
+          className,
         )}
       >
-        {title && (
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-[var(--color-text)]">{title}</h2>
-            <button
-              onClick={onClose}
-              className="rounded-sm text-[var(--color-text-muted)] transition-colors hover:text-[var(--color-text)]"
-              aria-label="Close"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-        )}
+        <button
+          type="button"
+          onClick={onClose}
+          className="absolute right-3 top-3 rounded-md p-1 text-subtext hover:bg-muted"
+          aria-label="Close"
+        >
+          <X className="size-4" />
+        </button>
         {children}
       </div>
-    </div>,
-    document.body
+    </div>
+  );
+}
+
+export function DialogHeader({
+  className,
+  ...props
+}: HTMLAttributes<HTMLDivElement>) {
+  return (
+    <div className={cn("mb-3 flex flex-col gap-1 pr-6", className)} {...props} />
+  );
+}
+
+export function DialogTitle({
+  className,
+  ...props
+}: HTMLAttributes<HTMLHeadingElement>) {
+  return (
+    <h2
+      className={cn("text-base font-semibold text-text", className)}
+      {...props}
+    />
+  );
+}
+
+export function DialogDescription({
+  className,
+  ...props
+}: HTMLAttributes<HTMLParagraphElement>) {
+  return (
+    <p className={cn("text-sm text-subtext", className)} {...props} />
+  );
+}
+
+export function DialogBody({
+  className,
+  ...props
+}: HTMLAttributes<HTMLDivElement>) {
+  return <div className={cn("space-y-3", className)} {...props} />;
+}
+
+export function DialogFooter({
+  className,
+  ...props
+}: HTMLAttributes<HTMLDivElement>) {
+  return (
+    <div
+      className={cn("mt-4 flex justify-end gap-2", className)}
+      {...props}
+    />
   );
 }

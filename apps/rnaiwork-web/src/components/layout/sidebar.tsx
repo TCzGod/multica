@@ -1,77 +1,88 @@
-import { NavLink } from "react-router-dom";
+import { NavLink, useParams } from "react-router-dom";
 import {
-  Bot,
-  BookOpen,
-  FolderKanban,
-  ListTodo,
-  Server,
-  Settings,
-  Play,
-  Users,
-  Tag,
-  Mail,
   LayoutDashboard,
+  CheckSquare,
+  Bot,
+  MessageSquare,
+  FolderKanban,
+  Settings,
+  LogOut,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { useAuthStore } from "@/stores/auth";
+import { useWorkspaceStore } from "@/stores/workspace";
 import { Logo } from "./logo";
+import { WorkspaceSwitcher } from "./workspace-switcher";
+import { Avatar } from "@/components/ui/avatar";
+import { cn } from "@/lib/utils";
 
-interface NavItem {
-  label: string;
-  icon: React.ComponentType<{ className?: string }>;
-  to: string;
-}
-
-const NAV_ITEMS: NavItem[] = [
-  { label: "Dashboard", icon: LayoutDashboard, to: "dashboard" },
-  { label: "Issues", icon: ListTodo, to: "issues" },
-  { label: "Agents", icon: Bot, to: "agents" },
-  { label: "Autopilots", icon: Play, to: "autopilots" },
-  { label: "Squads", icon: Users, to: "squads" },
-  { label: "Projects", icon: FolderKanban, to: "projects" },
-  { label: "Runtimes", icon: Server, to: "runtimes" },
-  { label: "Skills", icon: BookOpen, to: "skills" },
-  { label: "Labels", icon: Tag, to: "labels" },
-  { label: "Inbox", icon: Mail, to: "inbox" },
-  { label: "Settings", icon: Settings, to: "settings" },
+const navItems = [
+  { to: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { to: "issues", label: "Issues", icon: CheckSquare },
+  { to: "agents", label: "Agents", icon: Bot },
+  { to: "chat", label: "Chat", icon: MessageSquare },
+  { to: "projects", label: "Projects", icon: FolderKanban },
+  { to: "settings", label: "Settings", icon: Settings },
 ];
 
-export interface SidebarProps {
-  workspaceSlug: string;
-}
+export function Sidebar() {
+  const { workspaceSlug } = useParams();
+  const user = useAuthStore((s) => s.user);
+  const logout = useAuthStore((s) => s.logout);
+  const current = useWorkspaceStore((s) => s.currentWorkspace);
+  const base = workspaceSlug
+    ? `/${workspaceSlug}`
+    : current
+      ? `/${current.slug}`
+      : "/";
 
-/**
- * Left navigation rail for the workspace shell. Links are relative to the
- * active `/:workspaceSlug` segment so they stay correct when switching
- * workspaces. Active state is derived from NavLink's end-match per item.
- */
-export function Sidebar({ workspaceSlug }: SidebarProps) {
   return (
-    <aside className="flex h-full w-56 shrink-0 flex-col border-r border-[var(--color-border)] bg-[var(--color-surface)]">
-      <div className="flex h-14 items-center border-b border-[var(--color-border)] px-4">
+    <aside className="flex h-full w-60 shrink-0 flex-col border-r border-border bg-surface">
+      <div className="px-3 py-3">
         <Logo />
       </div>
-      <nav className="flex-1 space-y-1 overflow-y-auto p-3">
-        {NAV_ITEMS.map((item) => {
-          const Icon = item.icon;
-          return (
-            <NavLink
-              key={item.to}
-              to={`/${workspaceSlug}/${item.to}`}
-              className={({ isActive }) =>
-                cn(
-                  "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
-                  isActive
-                    ? "bg-[var(--color-surface-2)] text-[var(--color-text)]"
-                    : "text-[var(--color-text-muted)] hover:bg-[var(--color-surface-2)] hover:text-[var(--color-text)]",
-                )
-              }
-            >
-              <Icon className="h-4 w-4 shrink-0" />
-              <span>{item.label}</span>
-            </NavLink>
-          );
-        })}
+      <div className="px-2 pb-3">
+        <WorkspaceSwitcher />
+      </div>
+      <nav className="flex flex-1 flex-col gap-1 px-2">
+        {navItems.map(({ to, label, icon: Icon }) => (
+          <NavLink
+            key={to}
+            to={`${base}/${to}`}
+            className={({ isActive }) =>
+              cn(
+                "flex items-center gap-2 rounded-md px-2 py-1.5 text-sm font-medium transition-colors",
+                isActive
+                  ? "bg-primary-muted text-primary"
+                  : "text-subtext hover:bg-muted hover:text-text",
+              )
+            }
+          >
+            <Icon className="size-4" />
+            {label}
+          </NavLink>
+        ))}
       </nav>
+      <div className="border-t border-border p-2">
+        <div className="flex items-center gap-2 rounded-md px-2 py-1.5">
+          <Avatar src={user?.avatar_url ?? null} name={user?.name} size="sm" />
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-medium text-text">
+              {user?.name ?? "User"}
+            </p>
+            <p className="truncate text-xs text-subtext">{user?.email}</p>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={() => {
+            void logout();
+          }}
+          className="mt-1 flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm text-subtext hover:bg-muted hover:text-text"
+        >
+          <LogOut className="size-4" />
+          Log out
+        </button>
+      </div>
     </aside>
   );
 }

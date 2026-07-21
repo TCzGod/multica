@@ -1,250 +1,154 @@
+/* ------------------------------------------------------------------ */
+/* Domain types — mirror the backend shapes described in the API spec. */
+/* ------------------------------------------------------------------ */
+
 export interface User {
   id: string;
   email: string;
   name: string;
-  avatar_url?: string;
-  onboarded_at?: string;
+  avatar_url: string | null;
+  onboarded_at: string | null;
 }
 
 export interface Workspace {
   id: string;
-  name: string;
   slug: string;
-  description?: string;
-  avatar_url?: string;
-  role: string;
-}
-
-export interface Member {
-  id: string;
-  user_id: string;
-  role: string;
   name: string;
-  email: string;
-  avatar_url?: string;
-  created_at?: string;
+  avatar_url: string | null;
 }
 
-export interface Label {
+export type IssueStatus =
+  | "backlog"
+  | "todo"
+  | "in_progress"
+  | "in_review"
+  | "done"
+  | "cancelled";
+
+export type IssuePriority = "low" | "medium" | "high" | "urgent" | null;
+
+export interface Issue {
   id: string;
-  workspace_id: string;
-  name: string;
-  color: string;
-  created_at?: string;
-  updated_at?: string;
+  title: string;
+  description: string;
+  status: IssueStatus;
+  priority: IssuePriority;
+  assignee_id: string | null;
+  project_id: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
-export interface IssueResponse {
-  id: string;
-  workspace_id: string;
-  number: number;
-  identifier: string;
+export interface CreateIssueInput {
   title: string;
   description?: string;
-  status: string;
-  priority: string;
-  assignee_type?: string;
-  assignee_id?: string;
-  creator_type: string;
-  creator_id: string;
-  parent_issue_id?: string;
-  project_id?: string;
-  position: number;
-  stage?: number;
-  start_date?: string;
-  due_date?: string;
-  created_at: string;
-  updated_at: string;
-  metadata: Record<string, any>;
-  reactions?: any[];
-  attachments?: any[];
-  labels?: Label[];
+  assignee_id?: string | null;
+  project_id?: string | null;
+  priority?: IssuePriority;
+  status?: IssueStatus;
 }
 
-export type Issue = IssueResponse;
-
-export interface AgentResponse {
-  id: string;
-  workspace_id: string;
-  runtime_id?: string;
-  name: string;
-  description?: string;
-  instructions?: string;
-  avatar_url?: string;
-  runtime_mode: string;
-  runtime_config: any;
-  custom_args: string[];
-  has_custom_env: boolean;
-  custom_env_key_count: number;
-  visibility: string;
-  permission_mode: string;
-  status: string;
-  max_concurrent_tasks: number;
-  model: string;
-  thinking_level: string;
-  owner_id?: string;
-  skills: any[];
-  created_at: string;
-  updated_at: string;
-  archived_at?: string;
-  archived_by?: string;
-  provider: string;
-}
-
-export type Agent = AgentResponse;
-
-export interface AgentRuntime {
-  id: string;
-  workspace_id: string;
-  name: string;
-  status: string;
-  hostname?: string;
-  available_clis?: string[];
-  last_seen_at?: string;
-  is_online: boolean;
-}
-
-export interface ProjectResponse {
-  id: string;
-  workspace_id: string;
-  title: string;
-  description?: string;
-  icon?: string;
-  status: string;
-  priority: string;
-  lead_type?: string;
-  lead_id?: string;
-  created_at: string;
-  updated_at: string;
-  issue_count: number;
-  done_count: number;
-  resource_count: number;
-}
-
-export type Project = ProjectResponse;
-
-export interface Skill {
-  id: string;
-  workspace_id: string;
-  name: string;
-  description?: string;
-  content?: string;
-  created_at: string;
-  updated_at: string;
-}
+export type UpdateIssueInput = Partial<CreateIssueInput>;
 
 export interface Comment {
   id: string;
   issue_id: string;
-  author_type: string;
-  author_id: string;
-  author?: User | Agent;
   content: string;
+  author_id: string;
+  author_name?: string;
+  author_avatar_url?: string | null;
   created_at: string;
   updated_at: string;
-  parent_id?: string;
-  is_resolved: boolean;
 }
+
+export type TimelineEventType =
+  | "created"
+  | "status_changed"
+  | "assignee_changed"
+  | "priority_changed"
+  | "commented"
+  | "updated";
 
 export interface TimelineEvent {
   id: string;
   issue_id: string;
-  event_type: string;
-  actor_type: string;
-  actor_id: string;
-  content: string;
+  type: TimelineEventType | string;
+  actor_id?: string;
+  actor_name?: string;
+  field?: string;
+  old_value?: string | null;
+  new_value?: string | null;
+  content?: string;
   created_at: string;
 }
 
-export interface TaskRun {
+export type AgentProvider = string;
+
+export interface Agent {
   id: string;
-  issue_id: string;
-  agent_id: string;
-  status: string;
-  started_at: string;
-  completed_at?: string;
+  name: string;
+  provider: string;
+  runtime_id?: string | null;
+  instructions?: string | null;
+  is_archived: boolean;
+  created_at?: string;
+  updated_at?: string;
 }
 
-export interface Invitation {
+export interface CreateAgentInput {
+  name: string;
+  provider: string;
+  runtime_id?: string | null;
+  instructions?: string | null;
+}
+
+export type UpdateAgentInput = Partial<CreateAgentInput>;
+
+export interface Project {
   id: string;
-  workspace_id: string;
+  name: string;
+  slug?: string;
+  description?: string | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface CreateProjectInput {
+  name: string;
+  slug?: string;
+  description?: string;
+}
+
+export interface Member {
+  id: string;
+  name: string;
   email: string;
-  inviter: User;
-  workspace: Workspace;
-  status: string;
-  created_at: string;
-}
-
-export interface Autopilot {
-  id: string;
-  workspace_id: string;
-  name: string;
-  description?: string;
-  status: string;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface Squad {
-  id: string;
-  workspace_id: string;
-  name: string;
-  description?: string;
-  created_at: string;
-  updated_at: string;
+  avatar_url: string | null;
+  role?: string;
 }
 
 export interface ChatSession {
   id: string;
-  workspace_id: string;
-  agent_id?: string;
-  name: string;
-  status: string;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface InboxItem {
-  id: string;
-  workspace_id: string;
-  source: string;
   title: string;
-  content: string;
-  status: string;
-  created_at: string;
+  agent_id?: string | null;
+  created_at?: string;
+  updated_at?: string;
 }
 
-export interface Attachment {
+export interface CreateChatSessionInput {
+  agent_id?: string | null;
+  title?: string;
+}
+
+export interface ChatMessage {
   id: string;
-  workspace_id: string;
-  issue_id?: string;
-  filename: string;
-  content_type: string;
-  size: number;
+  session_id: string;
+  role: "user" | "assistant" | string;
+  content: string;
   created_at: string;
 }
 
-export interface AgentActivity {
-  date: string;
-  run_count: number;
-}
-
-export interface AgentRunCounts {
-  total: number;
-  last_7d: number;
-  last_30d: number;
-}
-
-export interface DashboardStats {
-  total_issues: number;
-  open_issues: number;
-  active_agents: number;
-  active_runs: number;
-}
-
-export interface AppConfig {
-  cdn_domain: string;
-  allow_signup: boolean;
-  daemon_server_url: string;
-  daemon_app_url: string;
+export interface WorkspaceContext {
+  slug: string | null;
+  id: string | null;
 }

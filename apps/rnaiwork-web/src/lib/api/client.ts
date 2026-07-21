@@ -1,36 +1,22 @@
-/**
- * Base API client for the RNAIWork web frontend.
- *
- * Design notes:
- * - Cookie-based auth: the browser sends the `multica_logged_in` cookie
- *   automatically via `credentials: "include"`. We never read the cookie
- *   value in JS — the HttpOnly flag prevents that anyway.
- * - Workspace scoping: workspace-scoped endpoints (issues, agents, etc.)
- *   require X-Workspace-Slug (preferred) or X-Workspace-ID so the backend
- *   middleware (server/internal/middleware/workspace.go) can resolve the
- *   workspace UUID and validate membership. The active workspace is
- *   registered here via setWorkspaceContext() so fetchAPI can inject the
- *   header synchronously without touching React on every request.
- * - Base URL: VITE_API_URL resolves to the backend host in production
- *   (e.g. http://backend:8080). Empty in dev — the Vite proxy forwards
- *   /api, /auth, and /uploads to the backend (see vite.config.ts).
- */
+import type { WorkspaceContext } from "./types";
 
-import type { Workspace } from "./types";
+/* ------------------------------------------------------------------
+   Module-level workspace context. Set synchronously before any
+   workspace-scoped query runs so the X-Workspace-Slug header is present.
+------------------------------------------------------------------- */
+let workspaceContext: WorkspaceContext = { slug: null, id: null };
 
-/** Auth cookie name. Sent automatically by the browser; documented for
- *  discoverability — we don't interact with it directly. */
-export const AUTH_COOKIE_NAME = "multica_logged_in";
+export function setWorkspaceContext(ctx: WorkspaceContext) {
+  workspaceContext = ctx;
+}
 
-/**
- * Error thrown by fetchAPI when the server returns a non-2xx response.
- * `status` carries the HTTP status code (0 for network failures); `body`
- * holds the parsed JSON error payload when the server sent one.
- */
+export function getWorkspaceContext(): WorkspaceContext {
+  return workspaceContext;
+}
+
 export class ApiError extends Error {
-  readonly status: number;
-  readonly body?: unknown;
-
+  status: number;
+  body?: unknown;
   constructor(message: string, status: number, body?: unknown) {
     super(message);
     this.name = "ApiError";
@@ -39,151 +25,88 @@ export class ApiError extends Error {
   }
 }
 
-/**
- * Base URL for API requests. Resolved from VITE_API_URL with any trailing
- * slash stripped. Empty string means same-origin (dev proxy handles routing).
- */
-const BASE_URL: string =
-  (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/, "") ?? "";
-
-// ---------------------------------------------------------------------------
-// Workspace context
-//
-// The app shell / router owns the active workspace. It registers itself
-// via setWorkspaceContext() so fetchAPI can read the slug synchronously
-// and inject the X-Workspace-Slug header on every workspace-scoped request.
-// Pass null to clear (e.g. on logout). This mirrors the mobile pattern in
-// apps/mobile/data/workspace-store.ts (getCurrentSlug).
-// ---------------------------------------------------------------------------
-
-interface WorkspaceContext {
-  slug: string | null;
-  id: string | null;
-}
-
-let workspaceContext: WorkspaceContext = { slug: null, id: null };
-
-/** Set the active workspace for subsequent API requests. Call this from
- *  the router whenever the user switches workspaces, and pass null on
- *  logout. Either slug (preferred) or id (fallback) may be provided. */
-export function setWorkspaceContext(ctx: {
-  slug?: string | null;
-  id?: string | null;
-} | null): void {
-  workspaceContext = {
-    slug: ctx?.slug ?? null,
-    id: ctx?.id ?? null,
-  };
-}
-
-/** Read the current workspace context (mainly for testing / inspection). */
-export function getWorkspaceContext(): WorkspaceContext {
-  return workspaceContext;
-}
-
-// ---------------------------------------------------------------------------
-// fetchAPI
-// ---------------------------------------------------------------------------
-
-export interface FetchAPIOptions {
-  method?: string;
-  /** Request body — will be JSON.stringify'd. Omit for GET / DELETE. */
-  body?: unknown;
-  /** Additional headers. Content-Type and workspace headers are set
-   *  automatically; callers can override Content-Type for multipart. */
-  headers?: Record<string, string>;
-  signal?: AbortSignal;
+async function parseError(res: Response): Promise<string> {
+  const text = await res.text().catch(() => "");
+  if (!text) return res.statusText || `Request failed (${res.status})`;
+  try {
+    const json = JSON.parse(text);
+    if (typeof json === "string") return json;
+    if (json?.error) return String(json.error);
+    if (json?.message) return String(json.message);
+    if (json?.detail) return String(json.detail);
+    return text;
+  } catch {
+    return text;
+  }
 }
 
 /**
- * Core fetch wrapper shared by every API module.
- *
- * - Sends credentials (cookies) on every request.
- * - Injects JSON Content-Type + Accept headers.
- * - Injects X-Workspace-Slug (or X-Workspace-ID) when a workspace is active.
- * - Throws ApiError on non-2xx responses (parsed body included).
- * - Returns parsed JSON, or undefined for 204 No Content / empty bodies.
+ * Thin fetch wrapper. Injects credentials + workspace slug header, parses
+ * JSON, and throws a typed ApiError on non-2xx responses.
  */
-export async function fetchAPI<T = unknown>(
+export async function fetchAPI<T>(
   path: string,
-  options: FetchAPIOptions = {},
+  options: RequestInit = {},
 ): Promise<T> {
-  const { method = "GET", body, headers = {}, signal } = options;
-
-  const finalHeaders: Record<string, string> = {
+  const headers: Record<string, string> = {
     "Content-Type": "application/json",
-    Accept: "application/json",
-    ...headers,
+    ...(options.headers as Record<string, string> | undefined),
   };
 
-  // Workspace header injection. Slug is preferred — the backend resolves
-  // slug → UUID via GetWorkspaceBySlug and validates membership. Fall
-  // back to X-Workspace-ID for CLI/daemon parity.
-  const ws = workspaceContext;
-  if (ws.slug) {
-    finalHeaders["X-Workspace-Slug"] = ws.slug;
-  } else if (ws.id) {
-    finalHeaders["X-Workspace-ID"] = ws.id;
+  if (workspaceContext.slug) {
+    headers["X-Workspace-Slug"] = workspaceContext.slug;
   }
 
   let res: Response;
   try {
-    res = await fetch(`${BASE_URL}${path}`, {
-      method,
-      headers: finalHeaders,
-      body: body === undefined ? undefined : JSON.stringify(body),
+    res = await fetch(path, {
+      ...options,
+      headers,
       credentials: "include",
-      signal,
     });
   } catch (err) {
-    // Re-throw AbortError unchanged so callers (React Query) can detect
-    // cancellation. Wrap everything else in ApiError with status 0.
-    if (err instanceof Error && err.name === "AbortError") {
-      throw err;
-    }
     throw new ApiError(
-      err instanceof Error ? err.message : "Network request failed",
+      err instanceof Error ? err.message : "Network error",
       0,
     );
   }
 
-  if (!res.ok) {
-    let errorBody: unknown;
-    try {
-      errorBody = await res.json();
-    } catch {
-      errorBody = undefined;
-    }
-    const message = extractErrorMessage(errorBody) ?? `${res.status} ${res.statusText}`;
-    throw new ApiError(message, res.status, errorBody);
+  if (res.status === 401) {
+    throw new ApiError("Unauthorized", 401);
   }
 
-  // 204 No Content — nothing to parse.
+  if (!res.ok) {
+    const message = await parseError(res);
+    throw new ApiError(message, res.status);
+  }
+
   if (res.status === 204) {
     return undefined as T;
   }
 
-  // Guard against empty bodies (e.g. 200 with no content) to avoid
-  // JSON.parse throwing on an empty string.
-  const text = await res.text();
-  if (!text) {
-    return undefined as T;
+  const contentType = res.headers.get("content-type") || "";
+  if (contentType.includes("application/json")) {
+    return (await res.json()) as T;
   }
-  return JSON.parse(text) as T;
+  return (await res.text()) as unknown as T;
 }
 
-/** Pull a human-readable message out of a parsed error body. The backend
- *  uses both `{"message": "..."}` and `{"error": "..."}` shapes depending
- *  on the handler. */
-function extractErrorMessage(body: unknown): string | null {
-  if (!body || typeof body !== "object") return null;
-  const obj = body as Record<string, unknown>;
-  if (typeof obj.message === "string") return obj.message;
-  if (typeof obj.error === "string") return obj.error;
-  return null;
+export function apiPost<T>(path: string, body?: unknown, options?: RequestInit) {
+  return fetchAPI<T>(path, {
+    method: "POST",
+    body: body === undefined ? undefined : JSON.stringify(body),
+    ...options,
+  });
 }
 
-/** Re-export Workspace type so consumers can import everything from
- *  client.ts if they prefer. Avoids a circular dependency since this
- *  module only needs the type (erased at compile time). */
-export type { Workspace };
+export function apiPut<T>(path: string, body?: unknown, options?: RequestInit) {
+  return fetchAPI<T>(path, {
+    method: "PUT",
+    body: body === undefined ? undefined : JSON.stringify(body),
+    ...options,
+  });
+}
+
+export function apiDelete<T>(path: string, options?: RequestInit) {
+  return fetchAPI<T>(path, { method: "DELETE", ...options });
+}

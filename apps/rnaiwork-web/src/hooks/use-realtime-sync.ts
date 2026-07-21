@@ -1,82 +1,74 @@
 import { useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { realtime } from "@/lib/realtime/websocket";
 import { useAuthStore } from "@/stores/auth";
 import { useWorkspaceStore } from "@/stores/workspace";
+import { queryKeys } from "@/lib/query-keys";
 
 /**
- * Keep TanStack Query caches in sync with realtime WebSocket events.
- *
- * Mount this once inside the workspace shell (see WorkspaceLayout) so it
- * is active whenever a signed-in user is in a workspace. It opens the
- * realtime connection on mount (idempotent) and invalidates the relevant
- * query caches as events arrive, so lists/details refresh without a
- * manual refetch.
- *
- * Invalidation targets the actual query keys used across the app:
- *  - issues list:   ["issues", filters]       → invalidate ["issues"]
- *  - issue detail:  ["issue", issueId]
- *  - comments:      ["issue", issueId, "comments"]
- *  - timeline:      ["issue", issueId, "timeline"]
- *  - agents list:   ["agents"]
- *  - agent tasks:   ["agent-tasks", agentId]  → invalidate ["agent-tasks"]
+ * Connects to the workspace WebSocket and invalidates the relevant TanStack
+ * Query caches on inbound events. Simplified: no retry/backoff, just invalidate
+ * by query-key prefix so pages refetch fresh data.
  */
 export function useRealtimeSync() {
   const queryClient = useQueryClient();
   const user = useAuthStore((s) => s.user);
   const currentWorkspace = useWorkspaceStore((s) => s.currentWorkspace);
 
+  const slug = currentWorkspace?.slug;
+  const userId = user?.id;
+
   useEffect(() => {
-    if (!user || !currentWorkspace) return;
+    if (!userId || !slug) return;
 
-    realtime.connect(currentWorkspace.slug);
+    const proto = window.location.protocol === "https:" ? "wss:" : "ws:";
+    const url = `${proto}//${window.location.host}/ws?workspace_slug=${encodeURIComponent(slug)}`;
 
-    // Issues list — refresh on any issue lifecycle event.
-    const unsubIssueCreated = realtime.on("issue_created", () => {
-      void queryClient.invalidateQueries({ queryKey: ["issues"] });
-    });
-    const unsubIssueUpdated = realtime.on("issue_updated", (data: any) => {
-      void queryClient.invalidateQueries({ queryKey: ["issues"] });
-      if (data?.id) {
-        // Refresh the detail view if one is mounted for this issue.
-        void queryClient.invalidateQueries({ queryKey: ["issue", data.id] });
-      }
-    });
+    let ws: WebSocket | null = null;
+    let closedByUs = false;
 
-    // Comments — refresh the affected issue's comments + timeline. The
-    // keys are issue-scoped; fall back to invalidating all issue detail
-    // queries if the event doesn't carry an issue_id.
-    const unsubCommentCreated = realtime.on("comment_created", (data: any) => {
-      const issueId = data?.issue_id;
-      if (issueId) {
-        void queryClient.invalidateQueries({
-          queryKey: ["issue", issueId, "comments"],
-        });
-        void queryClient.invalidateQueries({
-          queryKey: ["issue", issueId, "timeline"],
-        });
+    try {
+      ws = new WebSocket(url);
+    } catch {
+      return;
+    }
+
+    const invalidateFor = (type: string) => {
+      if (type.startsWith("issue")) {
+        queryClient.invalidateQueries({ queryKey: ["issues"] });
+      } else if (type.startsWith("agent")) {
+        queryClient.invalidateQueries({ queryKey: ["agents"] });
+      } else if (type.startsWith("chat") || type.startsWith("message")) {
+        queryClient.invalidateQueries({ queryKey: ["chat"] });
+      } else if (type.startsWith("project")) {
+        queryClient.invalidateQueries({ queryKey: ["projects"] });
+      } else if (type.startsWith("workspace") || type.startsWith("member")) {
+        queryClient.invalidateQueries({ queryKey: ["workspaces"] });
+        queryClient.invalidateQueries({ queryKey: ["members"] });
       } else {
-        void queryClient.invalidateQueries({ queryKey: ["issue"] });
+        // Unknown event — refresh issues as the safest default.
+        queryClient.invalidateQueries({ queryKey: ["issues"] });
       }
-    });
+    };
 
-    // Agents — refresh the list on status changes.
-    const unsubAgentUpdated = realtime.on("agent_status_changed", () => {
-      void queryClient.invalidateQueries({ queryKey: ["agents"] });
-    });
-
-    // Tasks — agent task queries are keyed ["agent-tasks", agentId].
-    const unsubTaskUpdated = realtime.on("task_updated", () => {
-      void queryClient.invalidateQueries({ queryKey: ["agent-tasks"] });
-    });
+    ws.onmessage = (ev) => {
+      try {
+        const data = JSON.parse(ev.data);
+        const type = String(data?.type ?? data?.event ?? "").toLowerCase();
+        if (type) invalidateFor(type);
+        if (data?.issue_id) {
+          queryClient.invalidateQueries({
+            queryKey: queryKeys.issue(String(data.issue_id)),
+          });
+        }
+      } catch {
+        /* ignore non-JSON frames */
+      }
+    };
 
     return () => {
-      unsubIssueCreated();
-      unsubIssueUpdated();
-      unsubCommentCreated();
-      unsubAgentUpdated();
-      unsubTaskUpdated();
-      realtime.disconnect();
+      closedByUs = true;
+      ws?.close();
+      void closedByUs;
     };
-  }, [user, queryClient]);
+  }, [userId, slug, queryClient]);
 }

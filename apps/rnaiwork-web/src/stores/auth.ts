@@ -1,52 +1,89 @@
 import { create } from "zustand";
+import { toast } from "sonner";
+import * as authApi from "@/lib/api/auth";
 import type { User } from "@/lib/api/types";
-import { getMe, logout as apiLogout, getConfig } from "@/lib/api/auth";
-import type { AppConfig } from "@/lib/api/types";
+import {
+  clearLoggedInCookie,
+  setLoggedInCookie,
+} from "@/lib/auth-cookie";
 
 interface AuthState {
   user: User | null;
-  config: AppConfig | null;
-  loading: boolean;
   initialized: boolean;
-  error: string | null;
+  isLoading: boolean;
   init: () => Promise<void>;
-  refreshUser: () => Promise<void>;
+  refreshMe: () => Promise<User | null>;
+  sendCode: (email: string) => Promise<boolean>;
+  verifyCode: (email: string, code: string) => Promise<boolean>;
   logout: () => Promise<void>;
-  clearError: () => void;
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
   user: null,
-  config: null,
-  loading: false,
   initialized: false,
-  error: null,
-  init: async () => {
-    set({ loading: true, error: null });
+  isLoading: false,
+
+  async init() {
     try {
-      const [user, config] = await Promise.all([getMe(), getConfig()]);
-      set({ user, config, loading: false, initialized: true });
-    } catch (err) {
-      // Not logged in — this is normal
-      set({ user: null, loading: false, initialized: true });
-      // Still try to get config (public endpoint)
-      try {
-        const config = await getConfig();
-        set({ config });
-      } catch {}
+      const me = await authApi.getMe();
+      set({ user: me });
+      return;
+    } catch {
+      set({ user: null });
+    } finally {
+      set({ initialized: true });
     }
   },
-  refreshUser: async () => {
+
+  async refreshMe() {
     try {
-      const user = await getMe();
-      set({ user });
+      const me = await authApi.getMe();
+      set({ user: me });
+      return me;
+    } catch {
+      set({ user: null });
+      return null;
+    }
+  },
+
+  async sendCode(email) {
+    set({ isLoading: true });
+    try {
+      await authApi.sendCode(email);
+      return true;
     } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to send code");
+      return false;
+    } finally {
+      set({ isLoading: false });
+    }
+  },
+
+  async verifyCode(email, code) {
+    set({ isLoading: true });
+    try {
+      await authApi.verifyCode(email, code);
+      setLoggedInCookie();
+      await this.refreshMe();
+      return true;
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "Verification failed",
+      );
+      return false;
+    } finally {
+      set({ isLoading: false });
+    }
+  },
+
+  async logout() {
+    try {
+      await authApi.logout();
+    } catch {
+      /* ignore — clear local state regardless */
+    } finally {
+      clearLoggedInCookie();
       set({ user: null });
     }
   },
-  logout: async () => {
-    try { await apiLogout(); } catch {}
-    set({ user: null });
-  },
-  clearError: () => set({ error: null }),
 }));

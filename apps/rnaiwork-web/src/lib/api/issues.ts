@@ -1,97 +1,86 @@
-/**
- * Issue API functions. All routes here are workspace-scoped — fetchAPI
- * injects the X-Workspace-Slug header from the active workspace context.
- *
- * Backend routes: server/cmd/server/router.go (r.Route("/api/issues", ...))
- */
-import { fetchAPI } from "./client";
-import type { Comment, Issue, TaskRun, TimelineEvent } from "./types";
+import { fetchAPI, apiPost, apiPut, apiDelete } from "./client";
+import type {
+  Comment,
+  CreateIssueInput,
+  Issue,
+  IssuePriority,
+  IssueStatus,
+  TimelineEvent,
+  UpdateIssueInput,
+} from "./types";
 
 export interface ListIssuesParams {
-  status?: string;
+  status?: IssueStatus;
   assignee_id?: string;
   project_id?: string;
-  search?: string;
 }
 
-/** GET /api/issues — list issues, optionally filtered. Empty params returns
- *  all issues in the active workspace. */
-export async function listIssues(
-  params?: ListIssuesParams,
-): Promise<Issue[]> {
-  const search = new URLSearchParams();
-  if (params) {
-    for (const [k, v] of Object.entries(params)) {
-      if (v != null) search.set(k, String(v));
-    }
-  }
-  const qs = search.toString();
-  return fetchAPI<Issue[]>(`/api/issues${qs ? `?${qs}` : ""}`);
+function buildQuery(params?: ListIssuesParams) {
+  if (!params) return "";
+  const qs = new URLSearchParams();
+  if (params.status) qs.set("status", params.status);
+  if (params.assignee_id) qs.set("assignee_id", params.assignee_id);
+  if (params.project_id) qs.set("project_id", params.project_id);
+  const s = qs.toString();
+  return s ? `?${s}` : "";
 }
 
-/** GET /api/issues/{id} — fetch a single issue with relations
- *  (assignee, project, labels). */
-export async function getIssue(id: string): Promise<Issue> {
-  return fetchAPI<Issue>(`/api/issues/${id}`);
+export function listIssues(params?: ListIssuesParams) {
+  return fetchAPI<Issue[]>(`/api/issues${buildQuery(params)}`);
 }
 
-/** POST /api/issues — create a new issue. */
-export async function createIssue(data: {
-  title: string;
-  description?: string;
-  assignee_id?: string;
-  project_id?: string;
-  priority?: string;
-  status?: string;
-  parent_id?: string;
-}): Promise<Issue> {
-  return fetchAPI<Issue>("/api/issues", { method: "POST", body: data });
+export function getIssue(id: string) {
+  return fetchAPI<Issue>(`/api/issues/${encodeURIComponent(id)}`);
 }
 
-/** PUT /api/issues/{id} — update issue fields. */
-export async function updateIssue(
-  id: string,
-  data: Partial<Issue>,
-): Promise<Issue> {
-  return fetchAPI<Issue>(`/api/issues/${id}`, { method: "PUT", body: data });
+export function createIssue(data: CreateIssueInput) {
+  return apiPost<Issue>("/api/issues", data);
 }
 
-/** DELETE /api/issues/{id} — permanently delete an issue. */
-export async function deleteIssue(id: string): Promise<void> {
-  await fetchAPI<void>(`/api/issues/${id}`, { method: "DELETE" });
+export function updateIssue(id: string, data: UpdateIssueInput) {
+  return apiPut<Issue>(`/api/issues/${encodeURIComponent(id)}`, data);
 }
 
-// --- Comments --------------------------------------------------------------
-
-/** GET /api/issues/{id}/comments — list comments on an issue. */
-export async function listComments(issueId: string): Promise<Comment[]> {
-  return fetchAPI<Comment[]>(`/api/issues/${issueId}/comments`);
+export function deleteIssue(id: string) {
+  return apiDelete<void>(`/api/issues/${encodeURIComponent(id)}`);
 }
 
-/** POST /api/issues/{id}/comments — add a comment to an issue. */
-export async function createComment(
-  issueId: string,
-  content: string,
-): Promise<Comment> {
-  return fetchAPI<Comment>(`/api/issues/${issueId}/comments`, {
-    method: "POST",
-    body: { content },
-  });
+export function listComments(issueId: string) {
+  return fetchAPI<Comment[]>(
+    `/api/issues/${encodeURIComponent(issueId)}/comments`,
+  );
 }
 
-// --- Timeline & task runs -------------------------------------------------
-
-/** GET /api/issues/{id}/timeline — activity timeline for an issue. */
-export async function listTimeline(issueId: string): Promise<TimelineEvent[]> {
-  return fetchAPI<TimelineEvent[]>(`/api/issues/${issueId}/timeline`);
+export function createComment(issueId: string, content: string) {
+  return apiPost<Comment>(
+    `/api/issues/${encodeURIComponent(issueId)}/comments`,
+    { content },
+  );
 }
 
-/** GET /api/issues/{id}/task-runs — execution history for an issue. */
-export async function listTaskRuns(issueId: string): Promise<TaskRun[]> {
-  return fetchAPI<TaskRun[]>(`/api/issues/${issueId}/task-runs`);
+export function listTimeline(issueId: string) {
+  return fetchAPI<TimelineEvent[]>(
+    `/api/issues/${encodeURIComponent(issueId)}/timeline`,
+  );
 }
 
-/** POST /api/issues/{id}/rerun — trigger a fresh agent run for the issue. */
-export async function rerunIssue(id: string): Promise<void> {
-  await fetchAPI<void>(`/api/issues/${id}/rerun`, { method: "POST" });
-}
+/** Metadata helpers for rendering. */
+export const STATUS_OPTIONS: { value: IssueStatus; label: string }[] = [
+  { value: "backlog", label: "Backlog" },
+  { value: "todo", label: "Todo" },
+  { value: "in_progress", label: "In Progress" },
+  { value: "in_review", label: "In Review" },
+  { value: "done", label: "Done" },
+  { value: "cancelled", label: "Cancelled" },
+];
+
+export const PRIORITY_OPTIONS: {
+  value: IssuePriority;
+  label: string;
+}[] = [
+  { value: null, label: "None" },
+  { value: "low", label: "Low" },
+  { value: "medium", label: "Medium" },
+  { value: "high", label: "High" },
+  { value: "urgent", label: "Urgent" },
+];
