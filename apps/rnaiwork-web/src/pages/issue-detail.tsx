@@ -16,6 +16,8 @@ import {
 import { listMembers } from "@/lib/api/workspaces";
 import { listProjects } from "@/lib/api/projects";
 import { queryKeys } from "@/lib/query-keys";
+import { useT } from "@/lib/i18n/use-t";
+import type { TranslationKey } from "@/lib/i18n/translations";
 import type { IssuePriority, IssueStatus } from "@/lib/api/types";
 import type { ReactNode } from "react";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -27,10 +29,27 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Avatar } from "@/components/ui/avatar";
 import { cn, formatRelative } from "@/lib/utils";
 
+const STATUS_LABEL_KEYS: Record<IssueStatus, TranslationKey> = {
+  backlog: "status.backlog",
+  todo: "status.todo",
+  in_progress: "status.in_progress",
+  in_review: "status.in_review",
+  done: "status.done",
+  cancelled: "status.cancelled",
+};
+
+const PRIORITY_LABEL_KEYS: Record<string, TranslationKey> = {
+  urgent: "priority.urgent",
+  high: "priority.high",
+  medium: "priority.medium",
+  low: "priority.low",
+};
+
 export function IssueDetailPage() {
   const { workspaceSlug, issueId } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const t = useT();
 
   const issueQ = useQuery({
     queryKey: queryKeys.issue(issueId!),
@@ -67,7 +86,7 @@ export function IssueDetailPage() {
       queryClient.invalidateQueries({ queryKey: ["issues"] });
     },
     onError: (err) =>
-      toast.error(err instanceof Error ? err.message : "Update failed"),
+      toast.error(err instanceof Error ? err.message : t("issues.updateFailed")),
   });
 
   const commentMut = useMutation({
@@ -82,18 +101,18 @@ export function IssueDetailPage() {
       });
     },
     onError: (err) =>
-      toast.error(err instanceof Error ? err.message : "Comment failed"),
+      toast.error(err instanceof Error ? err.message : t("issues.commentFailed")),
   });
 
   const deleteMut = useMutation({
     mutationFn: deleteIssue,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["issues"] });
-      toast.success("Issue deleted");
+      toast.success(t("issues.deleted"));
       navigate(`/${workspaceSlug}/issues`);
     },
     onError: (err) =>
-      toast.error(err instanceof Error ? err.message : "Delete failed"),
+      toast.error(err instanceof Error ? err.message : t("issues.deleteFailed")),
   });
 
   if (issueQ.isLoading) {
@@ -108,14 +127,14 @@ export function IssueDetailPage() {
     return (
       <div className="p-6">
         <EmptyState
-          title="Issue not found"
-          description="This issue may have been deleted."
+          title={t("issues.notFoundTitle")}
+          description={t("issues.notFoundHint")}
           action={
             <Link
               to={`/${workspaceSlug}/issues`}
               className={cn(buttonVariants({ size: "sm" }))}
             >
-              Back to issues
+              {t("issues.backToIssues")}
             </Link>
           }
         />
@@ -140,32 +159,32 @@ export function IssueDetailPage() {
           className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}
         >
           <ArrowLeft className="size-4" />
-          Back
+          {t("common.back")}
         </Link>
         <Button
           variant="destructive"
           size="sm"
           disabled={deleteMut.isPending}
           onClick={() => {
-            if (confirm("Delete this issue?")) deleteMut.mutate(issue.id);
+            if (confirm(t("issues.deleteConfirm"))) deleteMut.mutate(issue.id);
           }}
         >
           <Trash2 className="size-4" />
-          Delete
+          {t("common.delete")}
         </Button>
       </div>
 
       <h1 className="text-2xl font-semibold text-text">{issue.title}</h1>
       <p className="text-xs text-subtext">
-        Created {formatRelative(issue.created_at)} · Updated{" "}
-        {formatRelative(issue.updated_at)}
+        {t("issues.createdLabel")} {formatRelative(issue.created_at)} ·{" "}
+        {t("issues.updatedLabel")} {formatRelative(issue.updated_at)}
       </p>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <div className="space-y-4 lg:col-span-2">
           <Card>
             <CardHeader>
-              <CardTitle>Description</CardTitle>
+              <CardTitle>{t("issues.description")}</CardTitle>
             </CardHeader>
             <CardBody>
               {issue.description ? (
@@ -174,7 +193,7 @@ export function IssueDetailPage() {
                 </p>
               ) : (
                 <p className="text-sm text-subtext">
-                  No description provided.
+                  {t("issues.noDescription")}
                 </p>
               )}
             </CardBody>
@@ -193,11 +212,11 @@ export function IssueDetailPage() {
         <div className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Properties</CardTitle>
+              <CardTitle>{t("issues.properties")}</CardTitle>
             </CardHeader>
             <CardBody className="space-y-3">
               <Property
-                label="Status"
+                label={t("issues.status")}
                 value={
                   <Select
                     value={issue.status}
@@ -207,14 +226,14 @@ export function IssueDetailPage() {
                   >
                     {STATUS_OPTIONS.map((o) => (
                       <option key={o.value} value={o.value}>
-                        {o.label}
+                        {t(STATUS_LABEL_KEYS[o.value])}
                       </option>
                     ))}
                   </Select>
                 }
               />
               <Property
-                label="Priority"
+                label={t("issues.priority")}
                 value={
                   <Select
                     value={issue.priority ?? ""}
@@ -226,14 +245,16 @@ export function IssueDetailPage() {
                   >
                     {PRIORITY_OPTIONS.map((o) => (
                       <option key={String(o.value)} value={o.value ?? ""}>
-                        {o.label}
+                        {o.value === null
+                          ? t("priority.none")
+                          : t(PRIORITY_LABEL_KEYS[o.value] ?? ("priority.none" as TranslationKey))}
                       </option>
                     ))}
                   </Select>
                 }
               />
               <Property
-                label="Assignee"
+                label={t("issues.assignee")}
                 value={
                   <Select
                     value={issue.assignee_id ?? ""}
@@ -243,7 +264,7 @@ export function IssueDetailPage() {
                       })
                     }
                   >
-                    <option value="">Unassigned</option>
+                    <option value="">{t("issues.unassigned")}</option>
                     {members.map((m) => (
                       <option key={m.id} value={m.id}>
                         {m.name || m.email}
@@ -253,7 +274,7 @@ export function IssueDetailPage() {
                 }
               />
               <Property
-                label="Project"
+                label={t("issues.project")}
                 value={
                   <Select
                     value={issue.project_id ?? ""}
@@ -261,10 +282,10 @@ export function IssueDetailPage() {
                       setField({ project_id: e.target.value || null })
                     }
                   >
-                    <option value="">None</option>
+                    <option value="">{t("common.none")}</option>
                     {projects.map((p) => (
                       <option key={p.id} value={p.id}>
-                        {p.name}
+                        {p.title}
                       </option>
                     ))}
                   </Select>
@@ -275,11 +296,11 @@ export function IssueDetailPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Activity</CardTitle>
+              <CardTitle>{t("issues.activity")}</CardTitle>
             </CardHeader>
             <CardBody className="p-0">
               {timeline.length === 0 ? (
-                <p className="p-4 text-sm text-subtext">No activity yet.</p>
+                <p className="p-4 text-sm text-subtext">{t("issues.noActivity")}</p>
               ) : (
                 <ul className="divide-y divide-border">
                   {timeline.map((ev) => (
@@ -288,9 +309,9 @@ export function IssueDetailPage() {
                       className="flex flex-col gap-0.5 px-4 py-2"
                     >
                       <span className="text-sm text-text">
-                        {ev.actor_name ?? "Someone"}{" "}
+                        {ev.actor_name ?? t("issues.someone")}{" "}
                         <span className="text-subtext">
-                          {humanizeEvent(ev.type, ev.field, ev.new_value)}
+                          {humanizeEvent(t, ev.type, ev.field, ev.new_value)}
                         </span>
                       </span>
                       <span className="text-xs text-subtext">
@@ -334,6 +355,7 @@ function CommentsSection({
   submitting: boolean;
   onSubmit: (content: string) => void;
 }) {
+  const t = useT();
   const [text, setText] = useState("");
 
   const submit = () => {
@@ -345,11 +367,11 @@ function CommentsSection({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Comments</CardTitle>
+        <CardTitle>{t("issues.comments")}</CardTitle>
       </CardHeader>
       <CardBody className="space-y-3">
         {comments.length === 0 ? (
-          <p className="text-sm text-subtext">No comments yet.</p>
+          <p className="text-sm text-subtext">{t("issues.noComments")}</p>
         ) : (
           <ul className="space-y-3">
             {comments.map((c) => (
@@ -362,7 +384,7 @@ function CommentsSection({
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-medium text-text">
-                      {c.author_name ?? "Someone"}
+                      {c.author_name ?? t("issues.someone")}
                     </span>
                     <span className="text-xs text-subtext">
                       {formatRelative(c.created_at)}
@@ -378,7 +400,7 @@ function CommentsSection({
         )}
         <div className="flex gap-2">
           <Textarea
-            placeholder="Write a comment…"
+            placeholder={t("issues.writeComment")}
             value={text}
             onChange={(e) => setText(e.target.value)}
             rows={2}
@@ -386,7 +408,7 @@ function CommentsSection({
           />
           <Button disabled={submitting} onClick={submit} className="self-end">
             {submitting ? <Spinner size={14} /> : null}
-            Comment
+            {t("issues.comment")}
           </Button>
         </div>
       </CardBody>
@@ -394,19 +416,28 @@ function CommentsSection({
   );
 }
 
+type TFunc = (key: TranslationKey | string, params?: Record<string, string | number>) => string;
+
 function humanizeEvent(
+  t: TFunc,
   type: string,
   field?: string,
   newValue?: string | null,
 ) {
-  if (type === "created") return "created this issue";
-  if (type === "commented") return "commented";
-  if (type === "status_changed" || field === "status")
-    return `changed status to ${newValue ?? ""}`;
-  if (type === "assignee_changed" || field === "assignee_id")
-    return `set assignee to ${newValue ?? "nobody"}`;
-  if (type === "priority_changed" || field === "priority")
-    return `set priority to ${newValue ?? "none"}`;
-  if (type === "updated") return "updated the issue";
+  if (type === "created") return t("issues.eventCreated");
+  if (type === "commented") return t("issues.eventCommented");
+  if (type === "status_changed" || field === "status") {
+    const value = newValue ?? "";
+    return t("issues.eventStatusChanged", { value });
+  }
+  if (type === "assignee_changed" || field === "assignee_id") {
+    const value = newValue ?? t("issues.nobody");
+    return t("issues.eventAssigneeChanged", { value });
+  }
+  if (type === "priority_changed" || field === "priority") {
+    const value = newValue ?? t("common.none");
+    return t("issues.eventPriorityChanged", { value });
+  }
+  if (type === "updated") return t("issues.eventUpdated");
   return type.replace(/_/g, " ");
 }

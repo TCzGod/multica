@@ -25,24 +25,28 @@ export type IssueStatus =
   | "done"
   | "cancelled";
 
-export type IssuePriority = "low" | "medium" | "high" | "urgent" | null;
+export type IssuePriority = "none" | "low" | "medium" | "high" | "urgent";
 
 export interface Issue {
   id: string;
   title: string;
-  description: string;
+  description: string | null;
   status: IssueStatus;
   priority: IssuePriority;
   assignee_id: string | null;
+  assignee_type: string | null;
   project_id: string | null;
+  number?: number;
+  identifier?: string;
   created_at: string;
   updated_at: string;
 }
 
 export interface CreateIssueInput {
   title: string;
-  description?: string;
+  description?: string | null;
   assignee_id?: string | null;
+  assignee_type?: string | null;
   project_id?: string | null;
   priority?: IssuePriority;
   status?: IssueStatus;
@@ -106,17 +110,23 @@ export type UpdateAgentInput = Partial<CreateAgentInput>;
 
 export interface Project {
   id: string;
-  name: string;
-  slug?: string;
+  title: string;
   description?: string | null;
+  icon?: string | null;
+  status?: string;
+  priority?: string;
+  issue_count?: number;
+  done_count?: number;
   created_at?: string;
   updated_at?: string;
 }
 
 export interface CreateProjectInput {
-  name: string;
-  slug?: string;
-  description?: string;
+  title: string;
+  description?: string | null;
+  icon?: string;
+  status?: string;
+  priority?: string;
 }
 
 export interface Member {

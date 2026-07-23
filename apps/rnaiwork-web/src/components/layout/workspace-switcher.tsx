@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { ChevronsUpDown, Plus, Check } from "lucide-react";
 import { useWorkspaceStore } from "@/stores/workspace";
+import { useT } from "@/lib/i18n/use-t";
 import {
   DropdownMenu,
   DropdownMenuItem,
@@ -15,6 +16,7 @@ export function WorkspaceSwitcher({ className }: { className?: string }) {
   const workspaces = useWorkspaceStore((s) => s.workspaces);
   const current = useWorkspaceStore((s) => s.currentWorkspace);
   const setCurrent = useWorkspaceStore((s) => s.setCurrentWorkspace);
+  const t = useT();
 
   return (
     <DropdownMenu
@@ -30,7 +32,7 @@ export function WorkspaceSwitcher({ className }: { className?: string }) {
         >
           <Avatar src={current?.avatar_url ?? null} name={current?.name} size="sm" />
           <span className="flex-1 truncate font-medium text-text">
-            {current?.name ?? "Select workspace"}
+            {current?.name ?? t("workspace.selectWorkspace")}
           </span>
           <ChevronsUpDown className="size-4 text-subtext" />
         </button>
@@ -38,11 +40,11 @@ export function WorkspaceSwitcher({ className }: { className?: string }) {
     >
       {(close) => (
         <>
-          <DropdownMenuLabel>Workspaces</DropdownMenuLabel>
+          <DropdownMenuLabel>{t("workspace.workspaces")}</DropdownMenuLabel>
           <DropdownMenuSeparator />
           {Array.isArray(workspaces) && workspaces.length === 0 ? (
             <div className="px-2 py-1.5 text-sm text-subtext">
-              No workspaces yet
+              {t("workspace.noWorkspaces")}
             </div>
           ) : null}
           {Array.isArray(workspaces) &&
@@ -71,7 +73,7 @@ export function WorkspaceSwitcher({ className }: { className?: string }) {
             }}
           >
             <Plus className="size-4" />
-            New workspace
+            {t("workspace.newWorkspace")}
           </DropdownMenuItem>
         </>
       )}

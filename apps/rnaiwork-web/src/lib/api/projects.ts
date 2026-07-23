@@ -1,8 +1,9 @@
 import { fetchAPI, apiPost } from "./client";
 import type { CreateProjectInput, Project } from "./types";
 
-export function listProjects() {
-  return fetchAPI<Project[]>("/api/projects");
+export async function listProjects(): Promise<Project[]> {
+  const res = await fetchAPI<{ projects: Project[]; total: number }>("/api/projects");
+  return res?.projects ?? [];
 }
 
 export function createProject(data: CreateProjectInput) {

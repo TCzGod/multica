@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card";
 
-export function LoginPage() {
+export function RegisterPage() {
   const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
   const initialized = useAuthStore((s) => s.initialized);
@@ -30,7 +30,7 @@ export function LoginPage() {
 
   const onSendCode = async () => {
     if (!email.trim()) {
-      toast.error(t("login.invalidEmail"));
+      toast.error(t("register.invalidEmail"));
       return;
     }
     const ok = await sendCode(email.trim());
@@ -39,11 +39,12 @@ export function LoginPage() {
 
   const onVerify = async () => {
     if (!code.trim()) {
-      toast.error(t("login.enterCode"));
+      toast.error(t("register.enterCode"));
       return;
     }
     const ok = await verifyCode(email.trim(), code.trim());
     if (ok) {
+      toast.success(t("register.success"));
       await loadWorkspaces();
       const ws = useWorkspaceStore.getState().currentWorkspace;
       navigate(ws ? `/${ws.slug}/dashboard` : "/new-workspace");
@@ -57,15 +58,17 @@ export function LoginPage() {
           <div className="mb-2">
             <Logo />
           </div>
-          <CardTitle>{t("login.title")}</CardTitle>
+          <CardTitle>{t("register.title")}</CardTitle>
         </CardHeader>
         <CardBody className="space-y-3">
           {step === "email" ? (
             <>
-              <label className="text-sm font-medium text-text">{t("login.email")}</label>
+              <label className="text-sm font-medium text-text">
+                {t("register.email")}
+              </label>
               <Input
                 type="email"
-                placeholder={t("login.emailPlaceholder")}
+                placeholder={t("register.emailPlaceholder")}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 onKeyDown={(e) => {
@@ -78,20 +81,22 @@ export function LoginPage() {
                 onClick={() => void onSendCode()}
               >
                 {isLoading ? <Spinner size={14} /> : null}
-                {isLoading ? t("login.sending") : t("login.signInButton")}
+                {isLoading
+                  ? t("register.sending")
+                  : t("register.signUpButton")}
               </Button>
             </>
           ) : (
             <>
               <p className="text-sm text-subtext">
-                {t("login.codeSentHint")}{" "}
+                {t("register.codeSentHint")}{" "}
                 <span className="font-medium text-text">{email}</span>.
               </p>
               <label className="text-sm font-medium text-text">
-                {t("login.code")}
+                {t("register.code")}
               </label>
               <Input
-                placeholder={t("login.codePlaceholder")}
+                placeholder={t("register.codePlaceholder")}
                 value={code}
                 onChange={(e) => setCode(e.target.value)}
                 onKeyDown={(e) => {
@@ -104,24 +109,26 @@ export function LoginPage() {
                 onClick={() => void onVerify()}
               >
                 {isLoading ? <Spinner size={14} /> : null}
-                {isLoading ? t("login.verifying") : t("login.verifyButton")}
+                {isLoading
+                  ? t("register.verifying")
+                  : t("register.verifyButton")}
               </Button>
               <Button
                 variant="ghost"
                 className="w-full"
                 onClick={() => setStep("email")}
               >
-                {t("login.useDifferentEmail")}
+                {t("register.useDifferentEmail")}
               </Button>
             </>
           )}
           <p className="pt-2 text-center text-sm text-subtext">
-            {t("login.noAccount")}{" "}
+            {t("login.hasAccount")}{" "}
             <Link
-              to="/register"
+              to="/login"
               className="font-medium text-primary hover:underline"
             >
-              {t("login.register")}
+              {t("login.toLogin")}
             </Link>
           </p>
         </CardBody>

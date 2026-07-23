@@ -1,43 +1,23 @@
-import { lazy } from "react";
+
 import { createBrowserRouter, Navigate } from "react-router-dom";
 import { WorkspaceLayout } from "./workspace-layout";
 import { LandingPage } from "@/pages/landing";
 import { LoginPage } from "@/pages/login";
+import { RegisterPage } from "@/pages/register";
 import { NewWorkspacePage } from "@/pages/new-workspace";
-
-/* Workspace-scoped pages are code-split. */
-const DashboardPage = lazy(() =>
-  import("@/pages/dashboard").then((m) => ({ default: m.DashboardPage })),
-);
-const IssuesPage = lazy(() =>
-  import("@/pages/issues").then((m) => ({ default: m.IssuesPage })),
-);
-const IssueDetailPage = lazy(() =>
-  import("@/pages/issue-detail").then((m) => ({
-    default: m.IssueDetailPage,
-  })),
-);
-const AgentsPage = lazy(() =>
-  import("@/pages/agents").then((m) => ({ default: m.AgentsPage })),
-);
-const AgentDetailPage = lazy(() =>
-  import("@/pages/agent-detail").then((m) => ({
-    default: m.AgentDetailPage,
-  })),
-);
-const ChatPage = lazy(() =>
-  import("@/pages/chat").then((m) => ({ default: m.ChatPage })),
-);
-const ProjectsPage = lazy(() =>
-  import("@/pages/projects").then((m) => ({ default: m.ProjectsPage })),
-);
-const SettingsPage = lazy(() =>
-  import("@/pages/settings").then((m) => ({ default: m.SettingsPage })),
-);
+import { DashboardPage } from "@/pages/dashboard";
+import { IssuesPage } from "@/pages/issues";
+import { IssueDetailPage } from "@/pages/issue-detail";
+import { AgentsPage } from "@/pages/agents";
+import { AgentDetailPage } from "@/pages/agent-detail";
+import { ChatPage } from "@/pages/chat";
+import { ProjectsPage } from "@/pages/projects";
+import { SettingsPage } from "@/pages/settings";
 
 export const router = createBrowserRouter([
   { path: "/", element: <LandingPage /> },
   { path: "/login", element: <LoginPage /> },
+  { path: "/register", element: <RegisterPage /> },
   { path: "/new-workspace", element: <NewWorkspacePage /> },
   {
     path: "/:workspaceSlug",

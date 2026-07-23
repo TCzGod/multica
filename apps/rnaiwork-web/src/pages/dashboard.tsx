@@ -10,6 +10,8 @@ import { listAgents } from "@/lib/api/agents";
 import { listIssues } from "@/lib/api/issues";
 import { listProjects } from "@/lib/api/projects";
 import { queryKeys } from "@/lib/query-keys";
+import { useT } from "@/lib/i18n/use-t";
+import type { TranslationKey } from "@/lib/i18n/translations";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,17 +21,18 @@ import { cn, formatDate } from "@/lib/utils";
 import type { IssueStatus } from "@/lib/api/types";
 import type { ReactNode } from "react";
 
-const STATUS_LABELS: Record<IssueStatus, string> = {
-  backlog: "Backlog",
-  todo: "Todo",
-  in_progress: "In Progress",
-  in_review: "In Review",
-  done: "Done",
-  cancelled: "Cancelled",
+const STATUS_LABEL_KEYS: Record<IssueStatus, TranslationKey> = {
+  backlog: "status.backlog",
+  todo: "status.todo",
+  in_progress: "status.in_progress",
+  in_review: "status.in_review",
+  done: "status.done",
+  cancelled: "status.cancelled",
 };
 
 export function DashboardPage() {
   const { workspaceSlug } = useParams();
+  const t = useT();
   const issuesQ = useQuery({
     queryKey: queryKeys.issues(),
     queryFn: () => listIssues(),
@@ -65,12 +68,12 @@ export function DashboardPage() {
   return (
     <div className="space-y-6 p-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold text-text">Dashboard</h1>
+        <h1 className="text-xl font-semibold text-text">{t("dashboard.title")}</h1>
         <Link
           to={`/${workspaceSlug}/issues`}
           className={cn(buttonVariants())}
         >
-          View all issues
+          {t("dashboard.viewAllIssues")}
         </Link>
       </div>
 
@@ -83,42 +86,42 @@ export function DashboardPage() {
           <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
             <StatCard
               icon={<ListChecks />}
-              label="Open issues"
+              label={t("dashboard.openIssues")}
               value={issues.length}
             />
             <StatCard
               icon={<CheckSquare />}
-              label="In progress"
+              label={t("dashboard.inProgress")}
               value={byStatus("in_progress") + byStatus("in_review")}
             />
             <StatCard
               icon={<Bot />}
-              label="Active agents"
+              label={t("dashboard.activeAgents")}
               value={activeAgents.length}
             />
             <StatCard
               icon={<FolderKanban />}
-              label="Projects"
+              label={t("dashboard.projects")}
               value={projects.length}
             />
           </div>
 
           <Card>
             <CardHeader>
-              <CardTitle>Recent issues</CardTitle>
+              <CardTitle>{t("dashboard.recentIssues")}</CardTitle>
             </CardHeader>
             <CardBody className="p-0">
               {recent.length === 0 ? (
                 <EmptyState
                   className="m-4 border-0 p-0"
-                  title="No issues yet"
-                  description="Create your first issue to start tracking work."
+                  title={t("dashboard.emptyTitle")}
+                  description={t("dashboard.emptyHint")}
                   action={
                     <Link
                       to={`/${workspaceSlug}/issues`}
                       className={cn(buttonVariants({ size: "sm" }))}
                     >
-                      Go to issues
+                      {t("dashboard.goToIssues")}
                     </Link>
                   }
                 />
@@ -134,7 +137,7 @@ export function DashboardPage() {
                           {issue.title}
                         </span>
                         <Badge variant="secondary">
-                          {STATUS_LABELS[issue.status]}
+                          {t(STATUS_LABEL_KEYS[issue.status])}
                         </Badge>
                         <span className="text-xs text-subtext">
                           {formatDate(issue.updated_at)}

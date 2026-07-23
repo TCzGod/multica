@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { FolderKanban, Plus } from "lucide-react";
 import { createProject, listProjects } from "@/lib/api/projects";
 import { queryKeys } from "@/lib/query-keys";
+import { useT } from "@/lib/i18n/use-t";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
@@ -20,6 +21,7 @@ import { formatRelative } from "@/lib/utils";
 
 export function ProjectsPage() {
   const queryClient = useQueryClient();
+  const t = useT();
   const [open, setOpen] = useState(false);
 
   const projectsQ = useQuery({
@@ -31,12 +33,12 @@ export function ProjectsPage() {
     mutationFn: createProject,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["projects"] });
-      toast.success("Project created");
+      toast.success(t("projects.created"));
       setOpen(false);
     },
     onError: (err) =>
       toast.error(
-        err instanceof Error ? err.message : "Failed to create project",
+        err instanceof Error ? err.message : t("projects.createFailed"),
       ),
   });
 
@@ -45,10 +47,10 @@ export function ProjectsPage() {
   return (
     <div className="space-y-4 p-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold text-text">Projects</h1>
+        <h1 className="text-xl font-semibold text-text">{t("projects.title")}</h1>
         <Button onClick={() => setOpen(true)}>
           <Plus className="size-4" />
-          New project
+          {t("projects.newProject")}
         </Button>
       </div>
 
@@ -61,12 +63,12 @@ export function ProjectsPage() {
           <EmptyState
             className="m-4 border-0 p-0"
             icon={<FolderKanban />}
-            title="No projects yet"
-            description="Group related issues into a project."
+            title={t("projects.empty")}
+            description={t("projects.emptyHint")}
             action={
               <Button size="sm" onClick={() => setOpen(true)}>
                 <Plus className="size-4" />
-                New project
+                {t("projects.newProject")}
               </Button>
             }
           />
@@ -77,7 +79,7 @@ export function ProjectsPage() {
                 key={p.id}
                 className="flex items-center justify-between gap-3 px-4 py-2.5"
               >
-                <span className="text-sm font-medium text-text">{p.name}</span>
+                <span className="text-sm font-medium text-text">{p.title}</span>
                 {p.description ? (
                   <span className="truncate text-xs text-subtext">
                     {p.description}
@@ -112,19 +114,20 @@ function CreateProjectDialog({
 }: {
   open: boolean;
   onClose: () => void;
-  onSubmit: (data: { name: string; description?: string }) => void;
+  onSubmit: (data: { title: string; description?: string }) => void;
   submitting: boolean;
 }) {
-  const [name, setName] = useState("");
+  const t = useT();
+  const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
 
   const submit = () => {
-    if (!name.trim()) {
-      toast.error("Name is required");
+    if (!title.trim()) {
+      toast.error(t("projects.nameRequired"));
       return;
     }
     onSubmit({
-      name: name.trim(),
+      title: title.trim(),
       description: description.trim() || undefined,
     });
   };
@@ -132,28 +135,28 @@ function CreateProjectDialog({
   return (
     <Dialog open={open} onClose={onClose}>
       <DialogHeader>
-        <DialogTitle>New project</DialogTitle>
+        <DialogTitle>{t("projects.newProject")}</DialogTitle>
       </DialogHeader>
       <DialogBody className="space-y-3">
         <Input
-          placeholder="Project name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
+          placeholder={t("projects.namePlaceholder")}
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
           autoFocus
         />
         <Input
-          placeholder="Description (optional)"
+          placeholder={t("projects.descriptionOptional")}
           value={description}
           onChange={(e) => setDescription(e.target.value)}
         />
       </DialogBody>
       <DialogFooter>
         <Button variant="ghost" onClick={onClose}>
-          Cancel
+          {t("common.cancel")}
         </Button>
         <Button disabled={submitting} onClick={submit}>
           {submitting ? <Spinner size={14} /> : null}
-          Create
+          {t("common.create")}
         </Button>
       </DialogFooter>
     </Dialog>

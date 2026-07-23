@@ -41,6 +41,25 @@ async function parseError(res: Response): Promise<string> {
 }
 
 /**
+ * Reads the `multica_csrf` cookie set by the backend at login. The cookie
+ * is non-HttpOnly so JS can read it; the backend's CSRF middleware validates
+ * this value against an HMAC of the auth token stored in the HttpOnly
+ * `multica_auth` cookie. We must send this header on every state-changing
+ * request (POST/PUT/PATCH/DELETE) when authenticating via cookies.
+ */
+function readCSRFToken(): string | null {
+  if (typeof document === "undefined") return null;
+  const prefix = "multica_csrf=";
+  for (const raw of document.cookie.split(";")) {
+    const trimmed = raw.trim();
+    if (trimmed.startsWith(prefix)) {
+      return decodeURIComponent(trimmed.slice(prefix.length));
+    }
+  }
+  return null;
+}
+
+/**
  * Thin fetch wrapper. Injects credentials + workspace slug header, parses
  * JSON, and throws a typed ApiError on non-2xx responses.
  */
@@ -55,6 +74,20 @@ export async function fetchAPI<T>(
 
   if (workspaceContext.slug) {
     headers["X-Workspace-Slug"] = workspaceContext.slug;
+  }
+
+  // Inject CSRF header on state-changing methods. The backend validates it
+  // against the auth cookie to defend against CSRF (double-submit pattern).
+  // GET/HEAD/OPTIONS are exempt (handled server-side).
+  const method = (options.method ?? "GET").toUpperCase();
+  if (
+    method !== "GET" &&
+    method !== "HEAD" &&
+    method !== "OPTIONS" &&
+    headers["X-CSRF-Token"] === undefined
+  ) {
+    const csrf = readCSRFToken();
+    if (csrf) headers["X-CSRF-Token"] = csrf;
   }
 
   let res: Response;

@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuthStore } from "@/stores/auth";
 import { useWorkspaceStore } from "@/stores/workspace";
@@ -6,8 +6,16 @@ import { queryKeys } from "@/lib/query-keys";
 
 /**
  * Connects to the workspace WebSocket and invalidates the relevant TanStack
- * Query caches on inbound events. Simplified: no retry/backoff, just invalidate
- * by query-key prefix so pages refetch fresh data.
+ * Query caches on inbound events.
+ *
+ * Implementation notes:
+ *  - The WebSocket is stored in a ref so React StrictMode's double-mount /
+ *    re-renders don't tear down an established connection.
+ *  - Reconnect with exponential backoff (capped at 30s) so transient drops
+ *    self-heal without page reload.
+ *  - The cleanup function only closes the socket when the dependency tuple
+ *    (userId, slug) actually changes — i.e. workspace switch or logout —
+ *    not on every render pass.
  */
 export function useRealtimeSync() {
   const queryClient = useQueryClient();
@@ -17,18 +25,32 @@ export function useRealtimeSync() {
   const slug = currentWorkspace?.slug;
   const userId = user?.id;
 
+  // Refs keep mutable state across renders without retriggering the effect.
+  const wsRef = useRef<WebSocket | null>(null);
+  const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const backoffRef = useRef(1000);
+  // Marks whether the disconnect was user-initiated (unmount/switch). When
+  // true, the reconnect loop is suppressed.
+  const closedByUsRef = useRef(false);
+  // Refs to the latest values so the reconnect closure sees fresh data
+  // without being re-created (which would reset backoff).
+  const userIdRef = useRef(userId);
+  const slugRef = useRef(slug);
+  userIdRef.current = userId;
+  slugRef.current = slug;
+
   useEffect(() => {
-    if (!userId || !slug) return;
-
-    const proto = window.location.protocol === "https:" ? "wss:" : "ws:";
-    const url = `${proto}//${window.location.host}/ws?workspace_slug=${encodeURIComponent(slug)}`;
-
-    let ws: WebSocket | null = null;
-    let closedByUs = false;
-
-    try {
-      ws = new WebSocket(url);
-    } catch {
+    if (!userId || !slug) {
+      // Nothing to connect to — make sure any leftover socket is closed.
+      if (reconnectTimerRef.current) {
+        clearTimeout(reconnectTimerRef.current);
+        reconnectTimerRef.current = null;
+      }
+      if (wsRef.current) {
+        closedByUsRef.current = true;
+        wsRef.current.close();
+        wsRef.current = null;
+      }
       return;
     }
 
@@ -45,30 +67,96 @@ export function useRealtimeSync() {
         queryClient.invalidateQueries({ queryKey: ["workspaces"] });
         queryClient.invalidateQueries({ queryKey: ["members"] });
       } else {
-        // Unknown event — refresh issues as the safest default.
         queryClient.invalidateQueries({ queryKey: ["issues"] });
       }
     };
 
-    ws.onmessage = (ev) => {
+    const connect = () => {
+      const currentUserId = userIdRef.current;
+      const currentSlug = slugRef.current;
+      if (!currentUserId || !currentSlug) return;
+
+      const proto = window.location.protocol === "https:" ? "wss:" : "ws:";
+      const url = `${proto}//${window.location.host}/ws?workspace_slug=${encodeURIComponent(currentSlug)}`;
+
+      let ws: WebSocket;
       try {
-        const data = JSON.parse(ev.data);
-        const type = String(data?.type ?? data?.event ?? "").toLowerCase();
-        if (type) invalidateFor(type);
-        if (data?.issue_id) {
-          queryClient.invalidateQueries({
-            queryKey: queryKeys.issue(String(data.issue_id)),
-          });
-        }
+        ws = new WebSocket(url);
       } catch {
-        /* ignore non-JSON frames */
+        scheduleReconnect();
+        return;
       }
+      wsRef.current = ws;
+      closedByUsRef.current = false;
+
+      ws.onopen = () => {
+        // Reset backoff on successful connect.
+        backoffRef.current = 1000;
+      };
+
+      ws.onmessage = (ev) => {
+        try {
+          const data = JSON.parse(ev.data);
+          const type = String(data?.type ?? data?.event ?? "").toLowerCase();
+          if (type) invalidateFor(type);
+          if (data?.issue_id) {
+            queryClient.invalidateQueries({
+              queryKey: queryKeys.issue(String(data.issue_id)),
+            });
+          }
+        } catch {
+          /* ignore non-JSON frames */
+        }
+      };
+
+      ws.onclose = () => {
+        if (closedByUsRef.current) return;
+        scheduleReconnect();
+      };
+
+      ws.onerror = () => {
+        // The browser will fire onclose after onerror; reconnect there.
+        try {
+          ws.close();
+        } catch {
+          /* ignore */
+        }
+      };
     };
 
-    return () => {
-      closedByUs = true;
-      ws?.close();
-      void closedByUs;
+    const scheduleReconnect = () => {
+      if (closedByUsRef.current) return;
+      if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current);
+      // Exponential backoff capped at 30s.
+      const delay = Math.min(backoffRef.current, 30000);
+      backoffRef.current = Math.min(backoffRef.current * 2, 30000);
+      reconnectTimerRef.current = setTimeout(() => {
+        reconnectTimerRef.current = null;
+        connect();
+      }, delay);
     };
-  }, [userId, slug, queryClient]);
+
+    connect();
+
+    return () => {
+      closedByUsRef.current = true;
+      if (reconnectTimerRef.current) {
+        clearTimeout(reconnectTimerRef.current);
+        reconnectTimerRef.current = null;
+      }
+      if (wsRef.current) {
+        try {
+          wsRef.current.close();
+        } catch {
+          /* ignore */
+        }
+        wsRef.current = null;
+      }
+      // Reset backoff so the next mount starts fresh.
+      backoffRef.current = 1000;
+    };
+    // queryClient is stable (from useQueryClient), so we intentionally don't
+    // include it — including it would re-run on every render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId, slug]);
 }

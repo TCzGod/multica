@@ -3,6 +3,7 @@ import { Navigate, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useAuthStore } from "@/stores/auth";
 import { useWorkspaceStore } from "@/stores/workspace";
+import { useT } from "@/lib/i18n/use-t";
 import { Logo } from "@/components/layout/logo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,6 +22,7 @@ export function NewWorkspacePage() {
   const user = useAuthStore((s) => s.user);
   const initialized = useAuthStore((s) => s.initialized);
   const createWorkspace = useWorkspaceStore((s) => s.createWorkspace);
+  const t = useT();
 
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
@@ -45,7 +47,7 @@ export function NewWorkspacePage() {
 
   const onSubmit = async () => {
     if (!name.trim()) {
-      toast.error("Please enter a workspace name");
+      toast.error(t("newWorkspace.nameRequired"));
       return;
     }
     setSubmitting(true);
@@ -56,7 +58,7 @@ export function NewWorkspacePage() {
     });
     setSubmitting(false);
     if (ws) {
-      toast.success("Workspace created");
+      toast.success(t("newWorkspace.created"));
       navigate(`/${ws.slug}/dashboard`);
     }
   };
@@ -68,19 +70,19 @@ export function NewWorkspacePage() {
           <div className="mb-2">
             <Logo />
           </div>
-          <CardTitle>Create a workspace</CardTitle>
+          <CardTitle>{t("newWorkspace.title")}</CardTitle>
         </CardHeader>
         <CardBody className="space-y-3">
           <div className="space-y-1">
-            <label className="text-sm font-medium text-text">Name</label>
+            <label className="text-sm font-medium text-text">{t("newWorkspace.name")}</label>
             <Input
-              placeholder="My team"
+              placeholder={t("newWorkspace.namePlaceholder")}
               value={name}
               onChange={(e) => setName(e.target.value)}
             />
           </div>
           <div className="space-y-1">
-            <label className="text-sm font-medium text-text">Slug</label>
+            <label className="text-sm font-medium text-text">{t("newWorkspace.slug")}</label>
             <Input
               placeholder="my-team"
               value={slug}
@@ -92,10 +94,10 @@ export function NewWorkspacePage() {
           </div>
           <div className="space-y-1">
             <label className="text-sm font-medium text-text">
-              Description
+              {t("newWorkspace.description")}
             </label>
             <Textarea
-              placeholder="Optional"
+              placeholder={t("newWorkspace.descriptionPlaceholder")}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={3}
@@ -107,7 +109,7 @@ export function NewWorkspacePage() {
             onClick={() => void onSubmit()}
           >
             {submitting ? <Spinner size={14} /> : null}
-            Create workspace
+            {submitting ? t("newWorkspace.creating") : t("newWorkspace.createButton")}
           </Button>
         </CardBody>
       </Card>

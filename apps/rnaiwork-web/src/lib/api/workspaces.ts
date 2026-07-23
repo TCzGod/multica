@@ -1,4 +1,4 @@
-import { fetchAPI, apiPost } from "./client";
+import { fetchAPI, apiPost, getWorkspaceContext } from "./client";
 import type { Member, Workspace } from "./types";
 
 export function listWorkspaces() {
@@ -13,6 +13,9 @@ export function createWorkspace(data: {
   return apiPost<Workspace>("/api/workspaces", data);
 }
 
-export function listMembers(slug: string) {
-  return fetchAPI<Member[]>(`/api/workspaces/${encodeURIComponent(slug)}/members`);
+export function listMembers(_slug?: string) {
+  const ctx = getWorkspaceContext();
+  const workspaceId = ctx.id ?? _slug;
+  if (!workspaceId) throw new Error("workspace_id is required");
+  return fetchAPI<Member[]>(`/api/workspaces/${encodeURIComponent(workspaceId)}/members`);
 }

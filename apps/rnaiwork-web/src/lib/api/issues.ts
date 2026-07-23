@@ -25,8 +25,9 @@ function buildQuery(params?: ListIssuesParams) {
   return s ? `?${s}` : "";
 }
 
-export function listIssues(params?: ListIssuesParams) {
-  return fetchAPI<Issue[]>(`/api/issues${buildQuery(params)}`);
+export async function listIssues(params?: ListIssuesParams): Promise<Issue[]> {
+  const res = await fetchAPI<{ issues: Issue[]; total: number }>(`/api/issues${buildQuery(params)}`);
+  return res?.issues ?? [];
 }
 
 export function getIssue(id: string) {
@@ -78,7 +79,7 @@ export const PRIORITY_OPTIONS: {
   value: IssuePriority;
   label: string;
 }[] = [
-  { value: null, label: "None" },
+  { value: "none", label: "None" },
   { value: "low", label: "Low" },
   { value: "medium", label: "Medium" },
   { value: "high", label: "High" },

@@ -10,18 +10,24 @@ import {
 } from "lucide-react";
 import { useAuthStore } from "@/stores/auth";
 import { useWorkspaceStore } from "@/stores/workspace";
+import { useT } from "@/lib/i18n/use-t";
+import type { TranslationKey } from "@/lib/i18n/translations";
 import { Logo } from "./logo";
 import { WorkspaceSwitcher } from "./workspace-switcher";
 import { Avatar } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 
-const navItems = [
-  { to: "dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { to: "issues", label: "Issues", icon: CheckSquare },
-  { to: "agents", label: "Agents", icon: Bot },
-  { to: "chat", label: "Chat", icon: MessageSquare },
-  { to: "projects", label: "Projects", icon: FolderKanban },
-  { to: "settings", label: "Settings", icon: Settings },
+const navItems: {
+  to: string;
+  labelKey: TranslationKey;
+  icon: typeof LayoutDashboard;
+}[] = [
+  { to: "dashboard", labelKey: "nav.dashboard", icon: LayoutDashboard },
+  { to: "issues", labelKey: "nav.issues", icon: CheckSquare },
+  { to: "agents", labelKey: "nav.agents", icon: Bot },
+  { to: "chat", labelKey: "nav.chat", icon: MessageSquare },
+  { to: "projects", labelKey: "nav.projects", icon: FolderKanban },
+  { to: "settings", labelKey: "nav.settings", icon: Settings },
 ];
 
 export function Sidebar() {
@@ -29,6 +35,7 @@ export function Sidebar() {
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
   const current = useWorkspaceStore((s) => s.currentWorkspace);
+  const t = useT();
   const base = workspaceSlug
     ? `/${workspaceSlug}`
     : current
@@ -44,7 +51,7 @@ export function Sidebar() {
         <WorkspaceSwitcher />
       </div>
       <nav className="flex flex-1 flex-col gap-1 px-2">
-        {navItems.map(({ to, label, icon: Icon }) => (
+        {navItems.map(({ to, labelKey, icon: Icon }) => (
           <NavLink
             key={to}
             to={`${base}/${to}`}
@@ -58,7 +65,7 @@ export function Sidebar() {
             }
           >
             <Icon className="size-4" />
-            {label}
+            {t(labelKey)}
           </NavLink>
         ))}
       </nav>
@@ -67,7 +74,7 @@ export function Sidebar() {
           <Avatar src={user?.avatar_url ?? null} name={user?.name} size="sm" />
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-medium text-text">
-              {user?.name ?? "User"}
+              {user?.name ?? t("user.defaultName")}
             </p>
             <p className="truncate text-xs text-subtext">{user?.email}</p>
           </div>
@@ -80,7 +87,7 @@ export function Sidebar() {
           className="mt-1 flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm text-subtext hover:bg-muted hover:text-text"
         >
           <LogOut className="size-4" />
-          Log out
+          {t("nav.logout")}
         </button>
       </div>
     </aside>

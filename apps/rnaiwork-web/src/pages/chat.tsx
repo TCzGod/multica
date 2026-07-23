@@ -10,6 +10,7 @@ import {
   sendChatMessage,
 } from "@/lib/api/chat";
 import { queryKeys } from "@/lib/query-keys";
+import { useT } from "@/lib/i18n/use-t";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
@@ -18,6 +19,7 @@ import { cn, formatRelative } from "@/lib/utils";
 
 export function ChatPage() {
   const queryClient = useQueryClient();
+  const t = useT();
   const [activeId, setActiveId] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
 
@@ -45,7 +47,7 @@ export function ChatPage() {
       setActiveId(session.id);
     },
     onError: (err) =>
-      toast.error(err instanceof Error ? err.message : "Failed to create session"),
+      toast.error(err instanceof Error ? err.message : t("chat.createFailed")),
   });
 
   const sendMut = useMutation({
@@ -57,7 +59,7 @@ export function ChatPage() {
       });
     },
     onError: (err) =>
-      toast.error(err instanceof Error ? err.message : "Failed to send"),
+      toast.error(err instanceof Error ? err.message : t("chat.sendFailed")),
   });
 
   const messages = Array.isArray(messagesQ.data) ? messagesQ.data : [];
@@ -72,7 +74,7 @@ export function ChatPage() {
     <div className="flex h-full">
       <aside className="flex w-64 shrink-0 flex-col border-r border-border bg-surface">
         <div className="flex items-center justify-between p-3">
-          <span className="text-sm font-semibold text-text">Chats</span>
+          <span className="text-sm font-semibold text-text">{t("chat.chats")}</span>
           <Button
             size="sm"
             variant="outline"
@@ -80,7 +82,7 @@ export function ChatPage() {
             onClick={() => createSessionMut.mutate({})}
           >
             <Plus className="size-4" />
-            New
+            {t("chat.new")}
           </Button>
         </div>
         <div className="flex-1 overflow-auto">
@@ -89,7 +91,7 @@ export function ChatPage() {
               <Spinner />
             </div>
           ) : sessions.length === 0 ? (
-            <p className="px-3 py-2 text-sm text-subtext">No sessions.</p>
+            <p className="px-3 py-2 text-sm text-subtext">{t("chat.noSessions")}</p>
           ) : (
             <ul>
               {sessions.map((s) => (
@@ -104,7 +106,7 @@ export function ChatPage() {
                         : "text-text",
                     )}
                   >
-                    {s.title || "Untitled chat"}
+                    {s.title || t("chat.untitled")}
                   </button>
                 </li>
               ))}
@@ -125,8 +127,8 @@ export function ChatPage() {
                 <EmptyState
                   className="border-0"
                   icon={<MessageSquare />}
-                  title="Start the conversation"
-                  description="Send a message to begin chatting."
+                  title={t("chat.startConversationTitle")}
+                  description={t("chat.startConversationHint")}
                 />
               ) : (
                 <ul className="space-y-3">
@@ -165,7 +167,7 @@ export function ChatPage() {
             </div>
             <div className="flex items-center gap-2 border-t border-border p-3">
               <Input
-                placeholder="Message…"
+                placeholder={t("chat.placeholder")}
                 value={draft}
                 onChange={(e) => setDraft(e.target.value)}
                 onKeyDown={(e) => {
@@ -181,7 +183,7 @@ export function ChatPage() {
                 onClick={onSend}
               >
                 {sendMut.isPending ? <Spinner size={14} /> : <Send className="size-4" />}
-                Send
+                {t("chat.send")}
               </Button>
             </div>
           </>
@@ -189,8 +191,8 @@ export function ChatPage() {
           <div className="flex flex-1 items-center justify-center">
             <EmptyState
               icon={<MessageSquare />}
-              title="No chat selected"
-              description="Create a session to start a conversation."
+              title={t("chat.noChatSelectedTitle")}
+              description={t("chat.noChatSelectedHint")}
               action={
                 <Button
                   size="sm"
@@ -198,7 +200,7 @@ export function ChatPage() {
                   onClick={() => createSessionMut.mutate({})}
                 >
                   <Plus className="size-4" />
-                  New chat
+                  {t("chat.newChat")}
                 </Button>
               }
             />

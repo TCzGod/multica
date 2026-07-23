@@ -18,7 +18,7 @@ interface AuthState {
   logout: () => Promise<void>;
 }
 
-export const useAuthStore = create<AuthState>((set) => ({
+export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   initialized: false,
   isLoading: false,
@@ -64,7 +64,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     try {
       await authApi.verifyCode(email, code);
       setLoggedInCookie();
-      await this.refreshMe();
+      await get().refreshMe();
       return true;
     } catch (err) {
       toast.error(

@@ -27,6 +27,8 @@ import {
 import { listMembers } from "@/lib/api/workspaces";
 import { listProjects } from "@/lib/api/projects";
 import { queryKeys } from "@/lib/query-keys";
+import { useT } from "@/lib/i18n/use-t";
+import type { TranslationKey } from "@/lib/i18n/translations";
 import type { Issue, IssuePriority, IssueStatus } from "@/lib/api/types";
 import type { Member, Project } from "@/lib/api/types";
 import { Avatar } from "@/components/ui/avatar";
@@ -46,6 +48,26 @@ import {
 } from "@/components/ui/dialog";
 import { Card } from "@/components/ui/card";
 import { cn, formatDate, getInitials } from "@/lib/utils";
+
+/* ------------------------------------------------------------------ */
+/* i18n key maps                                                       */
+/* ------------------------------------------------------------------ */
+
+const STATUS_LABEL_KEYS: Record<IssueStatus, TranslationKey> = {
+  backlog: "status.backlog",
+  todo: "status.todo",
+  in_progress: "status.in_progress",
+  in_review: "status.in_review",
+  done: "status.done",
+  cancelled: "status.cancelled",
+};
+
+const PRIORITY_LABEL_KEYS: Record<string, TranslationKey> = {
+  urgent: "priority.urgent",
+  high: "priority.high",
+  medium: "priority.medium",
+  low: "priority.low",
+};
 
 /* ------------------------------------------------------------------ */
 /* Shared display helpers                                              */
@@ -85,12 +107,12 @@ const PRIORITY_DOT: Record<string, string> = {
 };
 
 /** Ordered columns for the kanban board. Cancelled is opt-in. */
-const BOARD_COLUMNS: { status: IssueStatus; label: string }[] = [
-  { status: "backlog", label: "Backlog" },
-  { status: "todo", label: "To Do" },
-  { status: "in_progress", label: "In Progress" },
-  { status: "in_review", label: "In Review" },
-  { status: "done", label: "Done" },
+const BOARD_COLUMNS: { status: IssueStatus; labelKey: TranslationKey }[] = [
+  { status: "backlog", labelKey: "status.backlog" },
+  { status: "todo", labelKey: "status.todo" },
+  { status: "in_progress", labelKey: "status.in_progress" },
+  { status: "in_review", labelKey: "status.in_review" },
+  { status: "done", labelKey: "status.done" },
 ];
 
 const ALL_STATUSES = STATUS_OPTIONS.map((o) => o.value);
@@ -104,6 +126,7 @@ type ViewMode = "board" | "list";
 export function IssuesPage() {
   const { workspaceSlug } = useParams();
   const queryClient = useQueryClient();
+  const t = useT();
 
   const [view, setView] = useState<ViewMode>("board");
   const [showCancelled, setShowCancelled] = useState(false);
@@ -135,11 +158,11 @@ export function IssuesPage() {
     mutationFn: createIssue,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["issues"] });
-      toast.success("Issue created");
+      toast.success(t("issues.created"));
       setCreateOpen(false);
     },
     onError: (err) =>
-      toast.error(err instanceof Error ? err.message : "Failed to create issue"),
+      toast.error(err instanceof Error ? err.message : t("issues.createFailed")),
   });
 
   const updateStatusMut = useMutation({
@@ -167,7 +190,7 @@ export function IssuesPage() {
       if (ctx?.snapshot) {
         queryClient.setQueryData(queryKeys.issues({}), ctx.snapshot);
       }
-      toast.error("Failed to move issue");
+      toast.error(t("issues.moveFailed"));
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["issues"] });
@@ -208,17 +231,17 @@ export function IssuesPage() {
   return (
     <div className="flex h-full flex-col p-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-xl font-semibold text-text">Issues</h1>
+        <h1 className="text-xl font-semibold text-text">{t("issues.title")}</h1>
         <div className="flex flex-wrap items-center gap-2">
           <Select
             value={projectFilter}
             onChange={(e) => setProjectFilter(e.target.value)}
             className="h-8 w-40 text-xs"
           >
-            <option value="all">All projects</option>
+            <option value="all">{t("issues.allProjects")}</option>
             {projects.map((p) => (
               <option key={p.id} value={p.id}>
-                {p.name}
+                {p.title}
               </option>
             ))}
           </Select>
@@ -227,7 +250,7 @@ export function IssuesPage() {
             onChange={(e) => setAssigneeFilter(e.target.value)}
             className="h-8 w-40 text-xs"
           >
-            <option value="all">All assignees</option>
+            <option value="all">{t("issues.allAssignees")}</option>
             {members.map((m) => (
               <option key={m.id} value={m.id}>
                 {m.name || m.email}
@@ -247,7 +270,7 @@ export function IssuesPage() {
               )}
             >
               <LayoutGrid className="size-3.5" />
-              Board
+              {t("issues.board")}
             </button>
             <button
               type="button"
@@ -260,13 +283,13 @@ export function IssuesPage() {
               )}
             >
               <ListIcon className="size-3.5" />
-              List
+              {t("issues.list")}
             </button>
           </div>
 
           <Button size="sm" onClick={() => openCreate("backlog")}>
             <Plus className="size-4" />
-            New issue
+            {t("issues.newIssue")}
           </Button>
         </div>
       </div>
@@ -278,12 +301,12 @@ export function IssuesPage() {
           </div>
         ) : filteredIssues.length === 0 && allIssues.length === 0 ? (
           <EmptyState
-            title="No issues found"
-            description="Create an issue to start tracking work in this workspace."
+            title={t("issues.emptyStateTitle")}
+            description={t("issues.emptyStateHint")}
             action={
               <Button size="sm" onClick={() => openCreate("backlog")}>
                 <Plus className="size-4" />
-                New issue
+                {t("issues.newIssue")}
               </Button>
             }
           />
@@ -348,9 +371,16 @@ function KanbanBoard({
   pendingMove: boolean;
 }) {
   const [activeId, setActiveId] = useState<string | null>(null);
+  const t = useT();
 
   const columns = showCancelled
-    ? [...BOARD_COLUMNS, { status: "cancelled" as IssueStatus, label: "Cancelled" }]
+    ? [
+        ...BOARD_COLUMNS,
+        {
+          status: "cancelled" as IssueStatus,
+          labelKey: "status.cancelled" as TranslationKey,
+        },
+      ]
     : BOARD_COLUMNS;
 
   const grouped = useMemo(() => {
@@ -409,7 +439,7 @@ function KanbanBoard({
             <KanbanColumn
               key={col.status}
               status={col.status}
-              label={col.label}
+              label={t(col.labelKey)}
               issues={items}
               workspaceSlug={workspaceSlug}
               memberMap={memberMap}
@@ -425,7 +455,7 @@ function KanbanBoard({
             onClick={onToggleCancelled}
             className="inline-flex items-center gap-1 rounded-md border border-dashed border-border px-3 py-1.5 text-xs text-subtext hover:bg-muted"
           >
-            {showCancelled ? "Hide cancelled" : "Show cancelled"}
+            {showCancelled ? t("issues.hideCancelled") : t("issues.showCancelled")}
           </button>
         </div>
       </div>
@@ -464,6 +494,7 @@ function KanbanColumn({
   pendingMove: boolean;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: status });
+  const t = useT();
 
   return (
     <div
@@ -484,7 +515,7 @@ function KanbanColumn({
       <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto px-2 pb-2">
         {issues.length === 0 ? (
           <div className="flex h-20 items-center justify-center rounded-md border border-dashed border-border text-xs text-subtext">
-            Empty
+            {t("issues.emptyColumn")}
           </div>
         ) : (
           issues.map((issue) => (
@@ -506,7 +537,7 @@ function KanbanColumn({
           className="inline-flex w-full items-center justify-center gap-1 rounded-md px-2 py-1.5 text-xs font-medium text-subtext hover:bg-muted hover:text-text"
         >
           <Plus className="size-3.5" />
-          New
+          {t("issues.new")}
         </button>
       </div>
     </div>
@@ -583,6 +614,7 @@ function KanbanCardContent({
   projectMap: Map<string, Project>;
   dragging?: boolean;
 }) {
+  const t = useT();
   const assignee = issue.assignee_id ? memberMap.get(issue.assignee_id) : null;
   const project = issue.project_id ? projectMap.get(issue.project_id) : null;
   const priority = issue.priority ?? null;
@@ -596,7 +628,7 @@ function KanbanCardContent({
               "mt-1 inline-block size-2 shrink-0 rounded-full",
               PRIORITY_DOT[priority] ?? "bg-subtext",
             )}
-            title={`Priority: ${priority}`}
+            title={t("issues.priorityLabel", { value: priority })}
           />
         ) : null}
         <p
@@ -612,12 +644,12 @@ function KanbanCardContent({
         <div className="flex items-center gap-1.5">
           {priority ? (
             <Badge variant={PRIORITY_BADGE[priority] ?? "secondary"}>
-              {priority}
+              {t(PRIORITY_LABEL_KEYS[priority] ?? ("priority.none" as TranslationKey))}
             </Badge>
           ) : null}
           {project ? (
             <span className="truncate rounded bg-muted px-1.5 py-0.5 text-[11px] text-subtext">
-              {project.name}
+              {project.title}
             </span>
           ) : null}
         </div>
@@ -634,7 +666,7 @@ function KanbanCardContent({
           ) : (
             <span
               className="inline-flex size-6 items-center justify-center rounded-full border border-dashed border-border text-[10px] text-subtext"
-              title="Unassigned"
+              title={t("issues.unassigned")}
             >
               {getInitials(null)}
             </span>
@@ -660,12 +692,13 @@ function IssueListView({
   memberMap: Map<string, Member>;
   projectMap: Map<string, Project>;
 }) {
+  const t = useT();
   if (issues.length === 0) {
     return (
       <EmptyState
         className="border-0 p-0"
-        title="No issues match the filters"
-        description="Try clearing filters or creating a new issue."
+        title={t("issues.noMatchesTitle")}
+        description={t("issues.noMatchesHint")}
       />
     );
   }
@@ -690,7 +723,7 @@ function IssueListView({
                 </span>
                 {project ? (
                   <span className="hidden rounded bg-muted px-1.5 py-0.5 text-[11px] text-subtext sm:inline">
-                    {project.name}
+                    {project.title}
                   </span>
                 ) : null}
                 {assignee ? (
@@ -702,11 +735,11 @@ function IssueListView({
                 ) : null}
                 {issue.priority ? (
                   <Badge variant={PRIORITY_BADGE[issue.priority] ?? "secondary"}>
-                    {issue.priority}
+                    {t(PRIORITY_LABEL_KEYS[issue.priority] ?? ("priority.none" as TranslationKey))}
                   </Badge>
                 ) : null}
                 <Badge variant={STATUS_BADGE[issue.status]}>
-                  {STATUS_OPTIONS.find((o) => o.value === issue.status)?.label}
+                  {t(STATUS_LABEL_KEYS[issue.status])}
                 </Badge>
                 <span className="w-24 text-right text-xs text-subtext">
                   {formatDate(issue.updated_at)}
@@ -742,6 +775,7 @@ function CreateIssueDialog({
   }) => void;
   submitting: boolean;
 }) {
+  const t = useT();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [status, setStatus] = useState<IssueStatus>(defaultStatus);
@@ -756,7 +790,7 @@ function CreateIssueDialog({
 
   const submit = () => {
     if (!title.trim()) {
-      toast.error("Title is required");
+      toast.error(t("issues.titleRequired"));
       return;
     }
     onSubmit({
@@ -774,37 +808,37 @@ function CreateIssueDialog({
   return (
     <Dialog open={open} onClose={onClose}>
       <DialogHeader>
-        <DialogTitle>New issue</DialogTitle>
+        <DialogTitle>{t("issues.newIssue")}</DialogTitle>
       </DialogHeader>
       <DialogBody className="space-y-3">
         <Input
-          placeholder="Issue title"
+          placeholder={t("issues.titlePlaceholder")}
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           autoFocus
         />
         <Textarea
-          placeholder="Description (optional)"
+          placeholder={t("issues.descriptionOptional")}
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           rows={4}
         />
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1">
-            <label className="text-xs font-medium text-subtext">Status</label>
+            <label className="text-xs font-medium text-subtext">{t("issues.status")}</label>
             <Select
               value={status}
               onChange={(e) => setStatus(e.target.value as IssueStatus)}
             >
               {STATUS_OPTIONS.map((o) => (
                 <option key={o.value} value={o.value}>
-                  {o.label}
+                  {t(STATUS_LABEL_KEYS[o.value])}
                 </option>
               ))}
             </Select>
           </div>
           <div className="space-y-1">
-            <label className="text-xs font-medium text-subtext">Priority</label>
+            <label className="text-xs font-medium text-subtext">{t("issues.priority")}</label>
             <Select
               value={priority ?? ""}
               onChange={(e) =>
@@ -813,7 +847,9 @@ function CreateIssueDialog({
             >
               {PRIORITY_OPTIONS.map((o) => (
                 <option key={String(o.value)} value={o.value ?? ""}>
-                  {o.label}
+                  {o.value === null
+                    ? t("priority.none")
+                    : t(PRIORITY_LABEL_KEYS[o.value] ?? ("priority.none" as TranslationKey))}
                 </option>
               ))}
             </Select>
@@ -822,11 +858,11 @@ function CreateIssueDialog({
       </DialogBody>
       <DialogFooter>
         <Button variant="ghost" onClick={onClose}>
-          Cancel
+          {t("common.cancel")}
         </Button>
         <Button disabled={submitting} onClick={submit}>
           {submitting ? <Spinner size={14} /> : null}
-          Create
+          {t("common.create")}
         </Button>
       </DialogFooter>
     </Dialog>
